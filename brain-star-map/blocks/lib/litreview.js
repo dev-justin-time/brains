@@ -57,6 +57,7 @@ RULES:
 
 // Collect { title, body } pairs for every "## Heading" section.
 // Exported for tests + the review.json artifact.
+// The heading regex tolerates the model dropping the space ("##GAPS").
 export function collectSections(answer) {
   const out = []
   const lines = answer.split('\n')
@@ -67,7 +68,7 @@ export function collectSections(answer) {
     buf = []
   }
   for (const line of lines) {
-    const h = /^##\s+(.+?)\s*$/.exec(line)
+    const h = /^##\s*(.+?)\s*$/.exec(line)
     if (h) {
       flush()
       current = h[1].trim()
@@ -220,7 +221,11 @@ export async function runLitReview(task, ctx, emit) {
   }
 
   const answer = result.answer.trim()
-  if (answer && !cached) cachePut(question, answer, 'lit_review', LIT_REVIEW_NAMESPACE)
+  // Only cache LLM-generated reviews: the retrieval fallback is cheap to
+  // regenerate, and caching it would (a) waste cache space and (b) make a
+  // later cache hit wrongly claim modelUsed: true. Since only LLM answers are
+  // cached, the cache-hit path can safely report modelUsed: true.
+  if (answer && result.modelUsed) cachePut(question, answer, 'lit_review', LIT_REVIEW_NAMESPACE)
 
   emit?.({ type: 'final', answer, agent: 'lit_review', cached: false, modelUsed: result.modelUsed, durationMs: result.durationMs })
 
