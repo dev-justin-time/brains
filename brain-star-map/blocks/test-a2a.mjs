@@ -171,11 +171,22 @@ async function testTimeout() {
 }
 
 async function testPickSpecialists() {
-  console.log('\n=== 4) pickSpecialists — offline topic routing (real DB) ===')
-  const names = pickSpecialists('What are graph neural networks used for in connectomics?', { topN: 2 })
-  ok(Array.isArray(names) && names.length === 2, `routed to 2 specialists (got ${names.length})`)
+  console.log('\n=== 4) pickSpecialists — offline auto-routing across the roster (real DB) ===')
+  // Default: no topN cap -> route to EVERY expert with affinity (up to all six).
+  const names = pickSpecialists('How do connectomics, deep learning and neural decoding intersect in brain research?')
+  ok(Array.isArray(names) && names.length >= 2, `auto-route fans out to multiple experts (got ${names.length})`)
+  ok(names.length <= 6, `auto-route capped at the roster size of 6 (got ${names.length})`)
   ok(names.every(n => /^expert_/.test(n)), `names are expert_* agentNames: ${names.join(', ')}`)
   ok(names.includes('expert_connectomics'), 'connectomics question routes to expert_connectomics')
+  ok(names.includes('expert_deep_learning'), 'deep-learning mention routes to expert_deep_learning')
+
+  // Explicit topN is still honored as a smaller fan-out.
+  const capped = pickSpecialists('How do connectomics, deep learning and neural decoding intersect in brain research?', { topN: 2 })
+  ok(capped.length === 2, `explicit topN:2 still caps the fan-out (got ${capped.length})`)
+
+  // A single-topic question should not drag in every expert.
+  const focused = pickSpecialists('What is connectomics?')
+  ok(focused.length === 1 && focused[0] === 'expert_connectomics', `focused question routes to only its topic (got ${focused.join(', ')})`)
 }
 
 async function testDemoHandlers() {

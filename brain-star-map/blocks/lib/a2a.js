@@ -14,8 +14,9 @@
 //     a partial result, not a failed task.
 //
 // Used by:
-//   - the "orchestrator" agent (blocks/lib/handler.js) — routes a question to
-//     the top-2 topic experts and merges a cited research brief;
+//   - the "orchestrator" agent (blocks/lib/handler.js) — auto-routes a question
+//     to every topic expert with affinity (up to all six) and merges a cited
+//     research brief;
 //   - the echo/adder reference demo (blocks/a2a-demo/).
 import { decodeInlineArtifact } from '@blocks-network/sdk'
 import { rosterInfo, scoreTopicAffinity } from '../../server/agents.js'
@@ -100,16 +101,26 @@ export async function runParallel(taskClient, calls, opts) {
 
 /**
  * Choose which specialists to fan out to — offline, no LLM call.
+ *
+ * Default: auto-route among ALL roster experts — every expert whose keyword
+ * affinity scores > 0 is included (up to the whole roster, currently six),
+ * so a cross-topic question fans out to every relevant specialist instead of
+ * a fixed top-2. Pass `topN` to cap the fan-out explicitly.
+ *
  * Uses the same un-normalized keyword affinity the router uses (scoreTopicAffinity):
  * label match in the question counts +2, topic keywords +1 (or +0.5 for token-level
  * matches). search() can't be used here — it normalizes per-topic, so every topic
  * would saturate at 1.0 and routing could not differentiate.
- * Fallback: the first N roster agents (deterministic) when nothing scores.
+ * Fallback: the top-scoring roster agents (deterministic) when nothing scores.
  */
-export function pickSpecialists(question, { topN = 2 } = {}) {
-  const scored = scoreTopicAffinity(question, rosterInfo())
-  const chosen = scored.filter(s => s.kwScore > 0).slice(0, topN)
-  const list = chosen.length ? chosen : scored.slice(0, topN)
+export function pickSpecialists(question, { topN } = {}) {
+  const roster = rosterInfo()
+  const scored = scoreTopicAffinity(question, roster)
+  // No cap given -> route to every expert with any affinity (up to the whole
+  // roster). Explicit topN still honors a smaller fan-out.
+  const limit = topN ?? roster.length
+  const chosen = scored.filter(s => s.kwScore > 0).slice(0, limit)
+  const list = chosen.length ? chosen : scored.slice(0, Math.min(limit, roster.length))
   return list.map(s => agentNameFor(s.agent.id))
 }
 
@@ -184,13 +195,13 @@ export async function runOrchestrator(task, ctx, emit, { subTaskTimeoutMs = SUB_
   const question = extractQuestion(task)
 
   // Optional explicit specialist list (requestParts partId "specialists"),
-  // otherwise route offline to the top-2 topic experts.
+  // otherwise auto-route among ALL topic experts with affinity (up to six).
   const specialistsPart = task?.requestParts?.find(p => p.partId === 'specialists')
   let agents = []
   if (specialistsPart?.text?.trim()) {
     agents = specialistsPart.text.split(',').map(s => s.trim()).filter(Boolean)
   } else {
-    agents = pickSpecialists(question, { topN: 2 })
+    agents = pickSpecialists(question)
   }
   if (!agents.length) {
     throw new Error('No specialists selected — pass requestParts partId "specialists" or fix the corpus roster.')

@@ -2,7 +2,7 @@
   "identity": {
     "agentName": "orchestrator",
     "displayName": "Orchestrator — A2A Research Brief",
-    "description": "A2A orchestrator: routes a question to the top-2 specialist expert agents, calls them IN PARALLEL over the Blocks network (ctx.taskClient), and merges their cited answers into a single research brief.",
+    "description": "A2A orchestrator: auto-routes a question to every specialist expert agent with affinity to it (up to all six), calls them IN PARALLEL over the Blocks network (ctx.taskClient), and merges their cited answers into a single research brief.",
     "version": "1.0.0",
     "provider": {
       "organization": "Brain Citation Star Map"
@@ -30,7 +30,7 @@
       },
       {
         "id": "specialists",
-        "description": "Optional comma-separated specialist agentNames to call in parallel (default: the top-2 topic experts routed from the question)",
+        "description": "Optional comma-separated specialist agentNames to call in parallel (default: auto-routes among ALL topic experts with affinity to the question, up to all six)",
         "contentType": "text/plain",
         "required": false,
         "example": "expert_connectomics,expert_deep_learning"
@@ -114,6 +114,6 @@
     "handlerExport": "default",
     "concurrency": 1,
     "expectedInstances": 1,
-    "maxRunningTimeSec": 300
+    "maxRunningTimeSec": 600
   }
 }

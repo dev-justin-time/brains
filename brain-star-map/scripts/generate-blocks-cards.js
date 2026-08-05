@@ -43,7 +43,7 @@ const QUESTION_INPUT = {
 
 const SPECIALISTS_INPUT = {
   id: 'specialists',
-  description: 'Optional comma-separated specialist agentNames to call in parallel (default: the top-2 topic experts routed from the question)',
+  description: 'Optional comma-separated specialist agentNames to call in parallel (default: auto-routes among ALL topic experts with affinity to the question, up to all six)',
   contentType: 'text/plain',
   required: false,
   example: 'expert_connectomics,expert_deep_learning',
@@ -139,7 +139,8 @@ function orchestratorCard() {
     agentName: 'orchestrator',
     displayName: 'Orchestrator — A2A Research Brief',
     description:
-      'A2A orchestrator: routes a question to the top-2 specialist expert agents, calls them IN PARALLEL over the Blocks network (ctx.taskClient), and merges their cited answers into a single research brief.',
+      'A2A orchestrator: auto-routes a question to every specialist expert agent with affinity to it (up to all six), calls them IN PARALLEL over the Blocks network (ctx.taskClient), and merges their cited answers into a single research brief.',
+    runtime: LONG_RUNTIME, // 6-way fan-out: sub-tasks up to 240s each + merge
     ioExtra: {
       inputs: [QUESTION_INPUT, SPECIALISTS_INPUT],
       outputs: [...OUTPUTS, {

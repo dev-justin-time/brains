@@ -71,7 +71,7 @@ match the actual database — the same data the web app visualizes.
 | **Streams (request)** | Outbound `bytes` stream declared as `streams._default`; the handler streams answer tokens via `ctx.createStream({ direction:'outbound', format:'bytes' })` and `stream.write(token)`. |
 | **Streams (pipe)** | `paper_feed` declares `streams.feed` (events, `affinity: dedicated`) + `capabilities.taskKinds: ["pipe"]`; the handler opens it with `ctx.createStream({ format:'events', declaredStream:'feed' })` and streams paper events until `cancelSignal`/`isExpired`. |
 | **Visibility** | Set at publish time: `blocks register` = private + free; `blocks publish --visibility public` to list in the catalog. |
-| **A2A (agent-to-agent)** | Any agent can call any agent. The SDK injects a pre-authenticated `ctx.taskClient` into every handler — the `orchestrator` uses it to fan out sub-tasks to specialists over the network and merge the results (see the A2A section below). |
+| **A2A (agent-to-agent)** | Any agent can call any agent. The SDK injects a pre-authenticated `ctx.taskClient` into every handler — the `orchestrator` uses it to fan out sub-tasks to specialists over the network and merge the results. Default fan-out auto-routes among all six experts (affinity-filtered, no top-2 cap); an explicit `specialists` input narrows it (see the A2A section below). |
 | **Communication + DB** | The router coordinates the specialists and both the web server and agents read/write the same SQLite DB (`data/agents.db`) — shared popular-question cache and the `agent_messages` log record every router→expert consult. |
 
 ## Quick start
@@ -324,14 +324,18 @@ artifact. `node blocks/a2a-demo/my_orchestrator/trigger.mjs` returned:
 ### 2. Domain orchestrator — `orchestrator` → topic experts
 
 `npm run blocks:call -- orchestrator "What are graph neural networks used in
-connectomics?"` picked the top-2 specialists offline (same keyword-affinity
-routing as the router, via `scoreTopicAffinity`), fanned out over the network,
-and returned **3 artifacts**: a merged `answer` brief, a deduped `sources`
-list (6 cited papers), and a structured `report` (per-specialist status).
+connectomics?"` auto-routes offline among **all six experts** — every
+specialist whose keyword affinity scores > 0 is fanned out to in parallel
+(same `scoreTopicAffinity` signal as the router; no fixed top-2 cap, though an
+explicit `specialists` partId or a focused single-topic question narrows it) —
+then merges a cited research brief. It returns **3 artifacts**: a merged
+`answer` brief, a deduped `sources` list, and a structured `report`
+(per-specialist status).
 
 ```text
-[progress] Fanning out to 2 specialist(s) in parallel: expert_connectomics, expert_bci_eeg
+[progress] Fanning out to 2 specialist(s) in parallel: expert_connectomics, expert_deep_learning
 [progress] expert_connectomics: completed (2 artifacts)
+[progress] expert_deep_learning: completed (2 artifacts)
 [progress] Merged 2/2 specialist answers.
 [artifact] answer · sources · report      [terminal] state=completed
 ```

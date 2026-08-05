@@ -191,7 +191,7 @@
     {
       id: 'orchestrator',
       label: 'A2A Orchestrator',
-      tagline: 'Fans a question out to the top-2 topic experts in parallel, merges their briefs.',
+      tagline: 'Auto-routes a question to every relevant topic expert (up to all six) in parallel, merges their briefs.',
       color: '#8b5cf6',
       kind: 'research',
       outputs: ['answer', 'sources', 'report'],
