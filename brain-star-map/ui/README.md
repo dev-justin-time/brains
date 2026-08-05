@@ -1,7 +1,7 @@
 # Brain Star Map — Research Console (`ui/`)
 
 A deployable web UI for the Blocks Network agents, scaffolded with
-`blocks init --mode webapp` for all 9 published agents and customized into a
+`blocks init --mode webapp` for all 13 published agents and customized into a
 star-map themed research console.
 
 ```
@@ -25,8 +25,10 @@ ui/
   - `answer` → streamed text with `[n]` citation markers styled
   - `sources` → clickable arXiv citation cards (`[{ title, year, url }]`)
   - `report` / demo JSON outputs → pretty-printed
-- **All agents callable**: `router`, `orchestrator`, `expert_connectomics`,
-  `expert_bci_eeg`, the `paper_feed` pipe agent (topic + duration inputs,
+- **All agents callable**: `router`, `orchestrator`, all six experts
+  (`expert_connectomics`, `expert_bci_eeg`, `expert_deep_learning`,
+  `expert_neural_decoding`, `expert_clinical_apps`, `expert_other`), the
+  `paper_feed` pipe agent (topic + duration inputs,
   live event feed with a Stop-stream button), the free `star_map_demo` agent
   (instant LLM-free answers + a downloadable `star-map-demo.html`), and the
   A2A demo trio (`my_echo`, `my_adder`, `my_orchestrator`).

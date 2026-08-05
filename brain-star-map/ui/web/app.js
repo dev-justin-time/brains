@@ -124,7 +124,7 @@
       return false;
     }
     try {
-      clients = await BlocksAuth.signInAndGetClients({ agents: ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "paper_feed", "star_map_demo", "my_echo", "my_adder", "my_orchestrator"], backendBaseUrl: embedBackendBaseUrl() });
+      clients = await BlocksAuth.signInAndGetClients({ agents: ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "expert_deep_learning", "expert_neural_decoding", "expert_clinical_apps", "expert_other", "paper_feed", "star_map_demo", "my_echo", "my_adder", "my_orchestrator"], backendBaseUrl: embedBackendBaseUrl() });
       window.__blocksClients = clients; // exposed for debugging
       signInBtn.hidden = true;
       gateSignInBtn.hidden = true;
@@ -150,7 +150,7 @@
       if (!Array.isArray(arr) || arr.length === 0) return false;
       const backendBaseUrl = embedBackendBaseUrl();
       const pageOrigin = window.location.origin;
-      const agentNames = ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "paper_feed", "star_map_demo", "my_echo", "my_adder", "my_orchestrator"];
+      const agentNames = ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "expert_deep_learning", "expert_neural_decoding", "expert_clinical_apps", "expert_other", "paper_feed", "star_map_demo", "my_echo", "my_adder", "my_orchestrator"];
       const expected = await BlocksAuth.computePartitionKey({ backendBaseUrl, pageOrigin, agentNames });
       return arr.some(function (entry) { return entry && entry.partitionKey === expected; });
     } catch (_) {
@@ -227,6 +227,58 @@
       inputs: [
         { id: 'question', label: 'Question', rows: 4, hint: 'A research question for this specialist.',
           default: 'What are the best EEG motor-imagery decoding methods?' }
+      ]
+    },
+    {
+      id: 'expert_deep_learning',
+      label: 'Deep Learning Expert',
+      tagline: 'Specialist answers grounded in the deep-learning methods cluster.',
+      color: '#eab308',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 4, hint: 'A research question for this specialist.',
+          default: 'What deep learning architectures are used for EEG decoding?' }
+      ]
+    },
+    {
+      id: 'expert_neural_decoding',
+      label: 'Neural Decoding Expert',
+      tagline: 'Specialist answers grounded in the neural-decoding cluster.',
+      color: '#6366f1',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 4, hint: 'A research question for this specialist.',
+          default: 'How is motor imagery decoded from EEG?' }
+      ]
+    },
+    {
+      id: 'expert_clinical_apps',
+      label: 'Clinical Apps Expert',
+      tagline: 'Specialist answers grounded in the clinical / rehabilitation cluster.',
+      color: '#f97316',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 4, hint: 'A research question for this specialist.',
+          default: 'What BCI systems are used in stroke rehabilitation?' }
+      ]
+    },
+    {
+      id: 'expert_other',
+      label: 'Other Topics Expert',
+      tagline: 'Specialist answers grounded in the remaining corpus topics.',
+      color: '#64748b',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 4, hint: 'A research question for this specialist.',
+          default: 'What are the main research topics in this corpus?' }
       ]
     },
     {
