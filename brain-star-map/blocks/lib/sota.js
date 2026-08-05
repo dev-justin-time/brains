@@ -35,6 +35,10 @@ export function loadBenchmarks() {
 
 // ---------- dataset matching ----------
 
+// Matcher aliases are intentionally a bit looser than the seed builder's
+// (a question about "seizure detection" should still reach CHB-MIT), but they
+// keep a hard requirement on the dataset name for most datasets to avoid
+// answering a MOABB question with SEED entries.
 const ALIASES = [
   { ids: ['BCI IV-2a', 'BCI IV-2b'], re: /bci\s*(?:competition\s*)?iv/i },
   { ids: ['BCI IV-2a'], re: /2a|two.?a/i },
@@ -48,19 +52,20 @@ const ALIASES = [
   { ids: ['CHB-MIT'], re: /chb.?mit|seizure/i },
   { ids: ['TUH'], re: /\btuh\b|temple\s+university/i },
   { ids: ['DEAP'], re: /\bdeap\b|emotion\s*(?:dataset|recognition)/i },
-  { ids: ['SEED'], re: /\bseed\b/ },
+  { ids: ['SEED'], re: /\bseed\s+(?:dataset|emotion|eeg|database)\b/ },
 ]
 
 // Exact-id first (so "BCI IV-2a" doesn't hit the broader IV alias), then
 // regex aliases in order. Returns dataset ids that match, or [].
 export function matchDatasets(question) {
-  const q = question.toLowerCase()
+  // Normalize dashes/spaces so "BCI IV-2a" and "bci iv 2a" both resolve.
+  const q = question.toLowerCase().replace(/[-_]/g, ' ')
   const bench = loadBenchmarks()
   if (!bench) return []
   const all = bench.datasets.map(d => d.id)
   const hits = []
   for (const id of all) {
-    if (q.includes(id.toLowerCase())) hits.push(id)
+    if (q.includes(id.toLowerCase().replace(/[-_]/g, ' '))) hits.push(id)
   }
   // If a specific BCI IV variant was named, the broad "BCI IV" alias would
   // add the sibling dataset too — skip it then (2a vs 2b are distinct

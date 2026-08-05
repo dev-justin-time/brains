@@ -77,6 +77,11 @@ const DATASETS = [
     metric: 'accuracy (%)',
     re: /bci\s*(?:competition\s*)?iii/,
   },
+  // NOTE: the builder only attributes a paper to a dataset when the actual
+  // dataset name appears — broad topic terms (e.g. "seizure" for CHB-MIT,
+  // "emotion" for DEAP, "random seed" for SEED) would create false entries.
+  // The sota.js *matcher* may be looser (it just needs to guide a question to
+  // the closest dataset); the seed table itself must stay name-based.
   {
     id: 'CHB-MIT',
     label: 'CHB-MIT scalp EEG (seizure)',
@@ -103,16 +108,10 @@ const DATASETS = [
     label: 'SEED emotion dataset',
     task: 'Affective EEG classification',
     metric: 'accuracy (%)',
-    re: /\bseed\b/,
+    // "seed" alone is too common in ML abstracts ("random seed"); require the
+    // dataset context so SEED entries only come from papers that name it.
+    re: /\bseed\s+(?:dataset|emotion|eeg|database)\b/,
   },
-]
-
-// Metric claim patterns — look for a number near a metric word.
-const METRIC_PATTERNS = [
-  { metric: 'accuracy (%)', valueRe: /(\d{2}(?:\.\d+)?)\s*%/, wordRe: /accurac/i, round: 1 },
-  { metric: 'F1', valueRe: /(0\.\d{2,3}|9[0-9](?:\.\d+)?)\s*%?\s*F1|\bF1[^0-9]{0,15}(0\.\d{2,3})/i, wordRe: /\bf1\b|f1.?score/i, round: 3 },
-  { metric: 'R²', valueRe: /R\s*[²^2]\s*=\s*(0\.\d+)/, wordRe: /r\s*[²^2]|r.?squared/i, round: 3 },
-  { metric: 'kappa', valueRe: /\bkappa\b[^0-9]{0,15}(0\.\d+)/i, wordRe: /kappa/i, round: 3 },
 ]
 
 // Sanity bounds — drop implausible extractions (p-values, tiny numbers that are

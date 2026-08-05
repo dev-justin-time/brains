@@ -25,7 +25,10 @@ console.log('== 1. seed table ==')
 console.log('\n== 2. dataset matching ==')
 {
   ok('BCI IV-2a matches', matchDatasets('state of the art on BCI IV-2a').includes('BCI IV-2a'), matchDatasets('state of the art on BCI IV-2a').join(','))
-  ok('PhysioNet matches', matchDatasets('MOABB leaderboard').length === 0 || true) // alias may resolve; just don't crash
+  ok('BCI IV-2a does not pull in 2b', !matchDatasets('state of the art on BCI IV-2a').includes('BCI IV-2b'), matchDatasets('state of the art on BCI IV-2a').join(','))
+  ok('BCI IV 2b (space, no dash) resolves', matchDatasets('best result on BCI IV 2b').includes('BCI IV-2b'), matchDatasets('best result on BCI IV 2b').join(','))
+  ok('PhysioNet matches', matchDatasets('PhysioNet motor imagery').includes('PhysioNet MI'), matchDatasets('PhysioNet motor imagery').join(','))
+  ok('MOABB matches', matchDatasets('MOABB leaderboard').includes('MOABB'), matchDatasets('MOABB leaderboard').join(','))
   ok('OpenBMI matches', matchDatasets('best accuracy on OpenBMI').includes('OpenBMI'))
 }
 

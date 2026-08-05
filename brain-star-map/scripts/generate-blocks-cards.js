@@ -396,6 +396,9 @@ function main() {
     fs.mkdirSync(dir, { recursive: true })
     // Preserve identity.webApps (the deployed UI URL registered by `blocks
     // deploy`) across regenerations — the generator doesn't know about it.
+    // One-way on purpose: `blocks deploy` writes these, so regen must not
+    // silently drop them. Tradeoff: deleting a webApp by hand in the card
+    // won't stick — the next regen restores it from the previous card.
     const existing = path.join(dir, 'agent-card.json')
     if (fs.existsSync(existing)) {
       try {
