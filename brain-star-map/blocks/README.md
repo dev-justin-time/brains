@@ -396,7 +396,7 @@ node scripts/remove-blocks-agent.mjs <agentName>   # SDK removeAgent()
 
 ### Invites vs. the live agents
 
-All 9 live agents (router, orchestrator, experts, `paper_feed`,
+All 13 live agents (router, orchestrator, all six experts, `paper_feed`,
 `star_map_demo`, demo trio) are **public** — public agents need no invites;
 any authenticated caller can use them. To gate one behind this invite flow,
 flip it private: `blocks publish --listing private --billing-mode paid`.
@@ -488,7 +488,7 @@ agents are charged automatically from the caller's balance. The demo trio
 ## Web UI — deployable research console (`ui/`)
 
 `ui/` is a static webapp scaffolded with `blocks init --mode webapp` for all 9
-published agents (router, orchestrator, the two live experts, `paper_feed`,
+published agents (router, orchestrator, all six experts, `paper_feed`,
 `star_map_demo`, and the three A2A demo agents) and then customized into a
 star-map themed research console.
 

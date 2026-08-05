@@ -117,7 +117,7 @@ users come from **capability breadth** (more agents/data) and **discovery**
 
 | # | Move | Effort | Impact | Revenue type |
 |---|---|---|---|---|
-| 1 | Publish 4 dormant expert cards | Hours | Medium | per-task |
+| 1 | Publish 4 dormant expert cards | ✅ done 2026-08-05 | — | per-task |
 | 2 | `lit_review` agent | 1–2 days | High | per-task (priced higher) |
 | 3 | Benchmark leaderboard data + `sota_tracker` | 2–3 days | High | per-task |
 | 4 | Topic subscriptions on `paper_feed` | 1–2 days | High | recurring (pipe) |
@@ -125,7 +125,7 @@ users come from **capability breadth** (more agents/data) and **discovery**
 | 6 | Shareable briefs + exports in UI | 1–2 days | Medium | acquisition |
 | 7 | `graph_explorer`, `clinical_translator` | 3–5 days | Medium | differentiation |
 
-**Do 1–3 next**: they reuse the existing engine, widen the catalog, and give the
+**Do 2–3 next**: they reuse the existing engine, widen the catalog, and give the
 web console a "benchmark answers" feature nobody else has.
 
 ---
