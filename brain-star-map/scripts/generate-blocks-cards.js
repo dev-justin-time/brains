@@ -394,7 +394,18 @@ function main() {
   for (const c of cards) {
     const dir = path.join(AGENTS_DIR, c.identity.agentName)
     fs.mkdirSync(dir, { recursive: true })
-    fs.writeFileSync(path.join(dir, 'agent-card.json'), JSON.stringify(c, null, 2) + '\n')
+    // Preserve identity.webApps (the deployed UI URL registered by `blocks
+    // deploy`) across regenerations — the generator doesn't know about it.
+    const existing = path.join(dir, 'agent-card.json')
+    if (fs.existsSync(existing)) {
+      try {
+        const prev = JSON.parse(fs.readFileSync(existing, 'utf8'))
+        if (Array.isArray(prev?.identity?.webApps) && prev.identity.webApps.length) {
+          c.identity.webApps = prev.identity.webApps
+        }
+      } catch { /* ignore unreadable previous card */ }
+    }
+    fs.writeFileSync(existing, JSON.stringify(c, null, 2) + '\n')
   }
 
   console.log(`\nWrote ${cards.length} agent cards to blocks/agents/`)
