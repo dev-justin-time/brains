@@ -3,6 +3,7 @@ import Graph from './Graph'
 import Legend from './Legend'
 import DetailCard from './DetailCard'
 import DownloadButton from './DownloadButton'
+import ChatPanel from './ChatPanel'
 
 export default function App() {
   const [data, setData] = useState(null)
@@ -113,6 +114,10 @@ export default function App() {
         />
         <DetailCard node={selectedNodeData} onClose={handleCloseDetail} />
         <DownloadButton nodes={data.nodes} />
+        <ChatPanel />
+        <a className="demo-link" href="demo.html" title="Open the standalone demo page (same visualization, no chat panel)">
+          Demo page ↗
+        </a>
         <div className="meta-badge">
           <div>
             {data.meta.total_papers} papers • {data.meta.total_edges} edges • {Object.keys(data.meta.communities).length} communities

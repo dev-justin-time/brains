@@ -132,10 +132,22 @@ export default function Graph({ data, onNodeClick, highlightComm, selectedNode }
           )
           composer.addPass(bloom)
 
-          // Override renderer.render to use composer
+          // Override renderer.render to use composer, with a re-entrancy guard:
+          // the graph's animation loop calls renderer.render() once per frame -> run the composer.
+          // The composer's passes (e.g. RenderPass) also call renderer.render() internally;
+          // those must forward to the real renderer, otherwise we recurse infinitely.
           const origRender = renderer.render.bind(renderer)
-          renderer.render = function () {
-            composer.render()
+          let composerRendering = false
+          renderer.render = function (...args) {
+            if (composerRendering) {
+              return origRender.apply(this, args)
+            }
+            composerRendering = true
+            try {
+              composer.render()
+            } finally {
+              composerRendering = false
+            }
           }
 
           // Resize handler for composer

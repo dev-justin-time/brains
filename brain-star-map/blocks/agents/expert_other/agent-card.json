@@ -1,0 +1,97 @@
+{
+  "identity": {
+    "agentName": "expert_other",
+    "displayName": "Other Expert",
+    "description": "Other Expert — one of the specialist research agents in the brain-technology network. Specialty: Other (10 papers in the corpus). Top keywords: bci, brain-computer, privacy, attack, neural, security. Answers questions in its specialty with citations.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "A research question about the brain-technology corpus (citations returned as [n])",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "What are the best EEG motor-imagery decoding methods?"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "The agent’s answer, citing corpus papers as [n]",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "Cited papers as structured JSON (title, year, arXiv URL)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "year": {
+                "type": "number"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "streams": {
+    "_default": {
+      "direction": "outbound",
+      "format": "bytes",
+      "description": "Answer text streamed token-by-token as it is generated",
+      "contentType": "text/plain"
+    }
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "expert_other",
+      "name": "Other",
+      "description": "Other specialty (10 papers)",
+      "examples": [
+        "Tell me about other",
+        "Summarize the paper \"Enhancing the Security & Privacy of Wearable Brain-Computer …\""
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

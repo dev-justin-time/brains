@@ -28,6 +28,35 @@ node scripts/build-data.js
 - react-force-graph-3d + Three.js
 - UnrealBloomPass + custom stardust particles
 - JSZip + file-saver for corpus export
+- Node + node:sqlite + Ollama (expert-agent backend, `npm run serve`)
+
+## Demo page
+
+`public/demo.html` is a standalone, zero-build demo of the visualization (served
+at `/demo.html`). It is a self-contained page that loads the same live
+`public/graph_data.json` at runtime, so it always reflects the current data
+without duplicating it. From the main app, click the **Demo page ↗** pill at the
+top center, or open `demo.html` directly.
+
+## Blocks Network agents
+
+The expert-agent system is packaged as [Blocks Network](https://blocks.ai)
+agents — one `agent-card.json` per expert topic plus a coordinating router,
+built on the official `@blocks-network/sdk`.
+
+```bash
+npm run blocks:cards    # regenerate agent cards from the DB roster
+npm run blocks:check    # validate all 7 cards with `blocks check`
+npm run blocks:test     # offline handler contract test (router)
+npm run blocks:test:expert
+npm run blocks:registry # fetch the published agent's registry entry
+npm run blocks:call -- router "<question>"   # call the live agent over the network
+```
+
+The **router agent is live on the Blocks Network** (public + free). Run
+`npm run blocks:run` to keep it receiving tasks. See
+[blocks/README.md](blocks/README.md) for the full setup, concepts, and the
+exact register/publish procedure with real outputs.
 
 ## Features
 

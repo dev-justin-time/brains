@@ -7,7 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "data": "node scripts/build-data.js"
+    "data": "node scripts/build-data.js",
+    "build-agent-db": "node scripts/build-agent-db.js",
+    "serve": "node server/index.js",
+    "blocks:cards": "node scripts/generate-blocks-cards.js",
+    "blocks:check": "node scripts/check-blocks-cards.js",
+    "blocks:test": "node blocks/test-local.mjs",
+    "blocks:test:expert": "node blocks/test-local.mjs --agent=expert_connectomics --question=\"What is connectomics?\"",
+    "blocks:run": "node scripts/run-blocks-agent.js router",
+    "blocks:run:expert": "node scripts/run-blocks-agent.js expert_connectomics",
+    "blocks:registry": "node scripts/verify-blocks-registry.mjs router",
+    "blocks:call": "node scripts/call-blocks-agent.mjs"
   },
   "dependencies": {
     "file-saver": "^2.0.5",
@@ -15,9 +25,11 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-force-graph-3d": "^1.25.1",
-    "three": "^0.166.1"
+    "three": "^0.185.1"
   },
   "devDependencies": {
+    "@blocks-network/cli": "^1.0.10",
+    "@blocks-network/sdk": "^1.0.11",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

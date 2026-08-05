@@ -1,0 +1,11 @@
+# Expert-agent database (built by `npm run build-agent-db`)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Blocks Network credentials (populated by `blocks login --write-env`)
+.env
+.env.*
+!.env.example
