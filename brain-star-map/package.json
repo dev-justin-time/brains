@@ -16,8 +16,15 @@
     "blocks:test:expert": "node blocks/test-local.mjs --agent=expert_connectomics --question=\"What is connectomics?\"",
     "blocks:run": "node scripts/run-blocks-agent.js router",
     "blocks:run:expert": "node scripts/run-blocks-agent.js expert_connectomics",
+    "blocks:run:orchestrator": "node scripts/run-blocks-agent.js orchestrator",
     "blocks:registry": "node scripts/verify-blocks-registry.mjs router",
-    "blocks:call": "node scripts/call-blocks-agent.mjs"
+    "blocks:call": "node scripts/call-blocks-agent.mjs",
+    "blocks:a2a:test": "node blocks/test-a2a.mjs",
+    "blocks:a2a:demo:call": "node blocks/a2a-demo/my_orchestrator/trigger.mjs",
+    "blocks:pipe:call": "node scripts/call-pipe-agent.mjs",
+    "blocks:pipe:test": "node blocks/test-pipe.mjs",
+    "blocks:demo:test": "node blocks/test-demo.mjs",
+    "blocks:demo:call": "node scripts/call-blocks-agent.mjs star_map_demo"
   },
   "dependencies": {
     "file-saver": "^2.0.5",

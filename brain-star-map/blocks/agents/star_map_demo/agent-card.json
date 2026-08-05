@@ -1,0 +1,103 @@
+{
+  "identity": {
+    "agentName": "star_map_demo",
+    "displayName": "Star Map Demo — Free Demo Agent",
+    "description": "Free demo agent for the Brain Citation Star Map. Answers corpus questions instantly (no language model — pure retrieval, so it stays free) and always returns the interactive 3D star-map visualization (public/demo.html) as a downloadable HTML file artifact.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "A question about the corpus (e.g. \"how many papers?\"), or \"show the demo\"",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "How many papers are in the corpus?"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "LLM-free answer from the corpus index (stats, paper lists, authors)",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "demo",
+        "description": "The interactive 3D star-map page (public/demo.html) as a text/html file artifact",
+        "contentType": "text/html",
+        "guaranteed": true
+      },
+      {
+        "id": "sources",
+        "description": "Cited papers as structured JSON (title, year, arXiv URL)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "year": {
+                "type": "number"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "streams": {
+    "_default": {
+      "direction": "outbound",
+      "format": "bytes",
+      "description": "Answer text streamed token-by-token as it is generated",
+      "contentType": "text/plain"
+    }
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "free-demo",
+      "name": "Free Demo",
+      "description": "LLM-free demo agent — instant corpus answers + downloadable 3D star-map page",
+      "examples": [
+        "How many papers are in the corpus?",
+        "Show me the demo"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

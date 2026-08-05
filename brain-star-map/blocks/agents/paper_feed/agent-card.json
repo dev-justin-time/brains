@@ -1,0 +1,73 @@
+{
+  "identity": {
+    "agentName": "paper_feed",
+    "displayName": "Paper Feed — Live Corpus Stream",
+    "description": "Pipe-streaming agent: opens a live feed of papers from the brain-technology corpus. Send a topic, pick a duration (1 minute – 30 days), and receive each matching paper as a structured event (title, year, arXiv URL, keywords) in real time.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "pipe"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "topic",
+        "description": "A topic keyword or phrase to match against the corpus (e.g. \"EEG motor imagery\")",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "graph neural networks"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "summary",
+        "description": "Session summary as structured JSON (topic, streamed count, duration)",
+        "contentType": "application/json",
+        "guaranteed": true,
+        "schema": {
+          "type": "object"
+        }
+      }
+    ]
+  },
+  "streams": {
+    "feed": {
+      "direction": "outbound",
+      "format": "events",
+      "affinity": "dedicated",
+      "description": "Live paper events: { type: \"paper\", title, year, url, first_author, topic, keywords, at }"
+    }
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "pipe-streaming",
+      "name": "Pipe Streaming",
+      "description": "Long-lived session streaming structured paper events until the duration expires",
+      "examples": [
+        "Stream papers about EEG for 5 minutes"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 2592000
+  }
+}

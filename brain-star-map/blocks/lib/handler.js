@@ -6,6 +6,8 @@
 // their runtime.handler at this file.
 //
 //   - router            -> full multi-expert pipeline (routing, consult, handoff)
+//   - orchestrator      -> A2A: fans out to specialist agents over the network
+//                          via ctx.taskClient and merges a research brief
 //   - expert_<topic>    -> that specialist answers from its own topic cluster
 //
 // Blocks key concepts implemented here:
@@ -23,12 +25,33 @@ import {
   runRouter,
   runExpert,
 } from './engine.js'
+import { runOrchestrator } from './a2a.js'
+import { runPaperFeed } from './pipe.js'
+import { runStarMapDemo } from './demo.js'
 
 export default async function handler(task, ctx) {
+  const agentName = task?.agentName || process.env.BLOCKS_AGENT_NAME || 'router'
+
+  // Pipe tasks (long-lived streaming sessions) take a different path: they
+  // carry a caller-set duration and stream events until canceled or expired.
+  // Only paper_feed declares pipe support; anything else fails fast.
+  if (task?.taskKind === 'pipe') {
+    if (agentName !== 'paper_feed') {
+      throw new Error(`Agent "${agentName}" does not support pipe tasks`)
+    }
+    return runPaperFeed(task, ctx)
+  }
+
+  // Free demo agent — LLM-free answers + the interactive star-map page as a
+  // downloadable text/html artifact. Its input partId is also "question" but
+  // it doesn't use the token stream, so handle it before stream setup.
+  if (agentName === 'star_map_demo') {
+    return runStarMapDemo(task, ctx)
+  }
+
   // Validate the input contract up front — a bad task fails fast (failed state)
   // instead of producing a misleading artifact.
   const question = extractQuestion(task)
-  const agentName = task?.agentName || process.env.BLOCKS_AGENT_NAME || 'router'
 
   // The outbound token stream (null when the network didn't attach one).
   const stream = await buildStream(ctx)
@@ -63,6 +86,9 @@ export default async function handler(task, ctx) {
     if (agentName === 'router') {
       ctx?.reportStatus(`Routing "${question.slice(0, 80)}" to the specialist network…`)
       result = await runRouter(task, ctx, emit)
+    } else if (agentName === 'orchestrator') {
+      ctx?.reportStatus(`Orchestrating specialist agents for "${question.slice(0, 80)}"…`)
+      result = await runOrchestrator(task, ctx, emit)
     } else {
       const agent = resolveAgent(agentName)
       result = await runExpert(agent, task, ctx, emit)
@@ -76,7 +102,18 @@ export default async function handler(task, ctx) {
       return { artifacts: makeArtifacts('(Task was canceled before an answer was produced.)', []) }
     }
 
-    return { artifacts: makeArtifacts(result.answer, result.sources) }
+    // Orchestrator path: additionally attach the structured per-specialist
+    // report as a third artifact (io.outputs.report).
+    const artifacts = makeArtifacts(result.answer, result.sources)
+    if (result.report) {
+      artifacts.push({
+        data: JSON.stringify(result.report, null, 2),
+        mimeType: 'application/json',
+        outputId: 'report',
+        fileName: 'report.json',
+      })
+    }
+    return { artifacts }
   } catch (err) {
     // A canceled task returns partial output; only genuine failures end in the
     // failed lifecycle state.

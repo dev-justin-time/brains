@@ -8,16 +8,29 @@ with an `agent-card.json`, built on the official `@blocks-network/sdk`.
 blocks/
 ├── lib/
 │   ├── handler.js        # the Blocks handler (default export) — shared by every agent
-│   └── engine.js         # pipeline: requestParts, streaming, expert + router execution
+│   ├── engine.js         # pipeline: requestParts, streaming, expert + router execution
+│   ├── a2a.js            # agent-to-agent: sub-task calls, parallel fan-out, merge
+│   └── pipe.js           # pipe-streaming: paper_feed long-lived event session
 ├── agents/
 │   ├── router/                   agent-card.json  — cross-topic coordinator
+│   ├── orchestrator/             agent-card.json  — A2A fan-out over the network (generated)
+│   ├── paper_feed/               agent-card.json  — pipe agent: live corpus event stream (generated)
 │   ├── expert_bci_eeg/           agent-card.json  — BCI & EEG Expert
 │   ├── expert_neural_decoding/   agent-card.json  — Neural Decoding Expert
 │   ├── expert_connectomics/      agent-card.json  — Connectomics Expert
 │   ├── expert_deep_learning/     agent-card.json  — Deep Learning Expert
 │   ├── expert_clinical_apps/     agent-card.json  — Clinical Apps Expert
 │   └── expert_other/             agent-card.json  — Other Expert
-└── test-local.mjs       # offline handler test harness (no network needed)
+├── a2a-demo/
+│   ├── my_echo/           agent-card.json + handler.js — reference A2A demo agent
+│   ├── my_adder/          agent-card.json + handler.js — reference A2A demo agent
+│   └── my_orchestrator/   agent-card.json + handler.js + trigger.mjs — calls echo + adder
+├── test-local.mjs       # offline handler test harness (no network needed)
+├── test-a2a.mjs         # offline A2A contract harness (mocked taskClient)
+└── test-pipe.mjs        # offline pipe-streaming contract harness (mocked ctx)
+
+ui/                          # deployable webapp for all agents (see below)
+└── web/{index.html,app.js,styles.css} + blocks.config.json
 ```
 
 Cards are **generated from the corpus data** (`npm run blocks:cards` reads the
@@ -28,15 +41,17 @@ match the actual database — the same data the web app visualizes.
 
 | Blocks concept | Implementation |
 |---|---|
-| **Agent** | 7 agents: 6 topic experts + 1 router. All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
+| **Agent** | 8 generated agents: 6 topic experts + 1 router + 1 orchestrator, plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
 | **Agent card** | `agent-card.json` per agent — identity, capabilities, io, streams, tags, runtime (see below). |
 | **Task (request)** | Each card declares `capabilities.taskKinds: ["request"]` — single question in, answer out. |
 | **requestParts / partId** | Input declared as `io.inputs[].id = "question"`. Callers send `requestParts: [{ partId: "question", text: "…" }]`. A missing/mismatched part fails the task fast (`failed` state). |
 | **Task lifecycle** | `pending` (submitted) → `running` (handler starts; SDK auto-publishes the first `{type:'progress', progress:0, state:'running'}`) → `completed` (artifacts returned) / `failed` (handler throws) / `canceled` (`ctx.cancelSignal` — streamed calls abort cooperatively). |
 | **Progress events** | `ctx.reportStatus(msg)` on every pipeline stage (cache hit, routing, expert working, consult, merge). |
 | **Artifacts** | `{ outputId: "answer", mimeType: "text/plain" }` + `{ outputId: "sources", mimeType: "application/json", fileName: "sources.json" }` — matching `io.outputs`. Small artifacts inline; large ones are uploaded automatically by the SDK. |
-| **Streams** | Outbound `bytes` stream declared as `streams._default`; the handler streams answer tokens via `ctx.createStream({ direction:'outbound', format:'bytes' })` and `stream.write(token)`. |
+| **Streams (request)** | Outbound `bytes` stream declared as `streams._default`; the handler streams answer tokens via `ctx.createStream({ direction:'outbound', format:'bytes' })` and `stream.write(token)`. |
+| **Streams (pipe)** | `paper_feed` declares `streams.feed` (events, `affinity: dedicated`) + `capabilities.taskKinds: ["pipe"]`; the handler opens it with `ctx.createStream({ format:'events', declaredStream:'feed' })` and streams paper events until `cancelSignal`/`isExpired`. |
 | **Visibility** | Set at publish time: `blocks register` = private + free; `blocks publish --visibility public` to list in the catalog. |
+| **A2A (agent-to-agent)** | Any agent can call any agent. The SDK injects a pre-authenticated `ctx.taskClient` into every handler — the `orchestrator` uses it to fan out sub-tasks to specialists over the network and merge the results (see the A2A section below). |
 | **Communication + DB** | The router coordinates the specialists and both the web server and agents read/write the same SQLite DB (`data/agents.db`) — shared popular-question cache and the `agent_messages` log record every router→expert consult. |
 
 ## Quick start
@@ -48,13 +63,19 @@ npm run blocks:cards
 
 # 2. Validate every card against the official Blocks schema (offline)
 npm run blocks:check
-# → runs `blocks check` on all 7 agent-card.json files
+# → runs `blocks check` on all cards (8 generated + 3 A2A demo)
 
 # 3. Prove the handler contract locally — no network required
 npm run blocks:test                 # router + full pipeline (real Ollama)
 npm run blocks:test:expert          # Connectomics Expert directly
 node blocks/test-local.mjs --agent=expert_bci_eeg --question="Best EEG motor-imagery decoders?"
 node blocks/test-local.mjs --expect-error   # input contract enforcement
+
+# 4. Prove the A2A contract locally — mocked taskClient, no network
+npm run blocks:a2a:test
+
+# 5. Prove the pipe-streaming contract locally — mocked ctx, no network
+npm run blocks:pipe:test
 ```
 
 ## Going live on the network
@@ -193,6 +214,166 @@ Calling "router" with: What are graph neural networks used for in connectomics?
 - **Invites** (private agents / A2A): `blocks invite`.
 - Each agent directory is its own deployment (one `agent-card.json` per dir);
   deploy any card the same way.
+
+## A2A — live on the network (verified)
+
+The A2A layer (`blocks/lib/a2a.js`) follows the official *Set Up Agent-to-Agent
+(A2A) Communication* guide:
+
+- **`ctx.taskClient` is pre-authenticated** — the SDK exchanges the agent's API
+  key for a consumer JWT; orchestrators call any agent with `sendMessage()`.
+- **Omit `ownerId`** on sub-tasks — passing the original caller's `task.ownerId`
+  causes a `PermissionDenied` error (sub-tasks are owned by the orchestrator).
+- **Inline artifacts are base64** — decoded with `decodeInlineArtifact()`.
+- **Partial failures are OK** — a specialist that fails or times out produces a
+  partial merged brief, never a failed task.
+- **Timeouts**: sub-task timeout (240s) stays under the orchestrator card's
+  `maxRunningTimeSec` (300s) to leave room for result assembly. The 120s
+  default was too tight — live specialist LLM generations measured 150-210s.
+
+Two orchestrators were registered, published (public + free) and run live on
+Blocks Network; both were called end-to-end as consumers:
+
+### 1. Demo trio — `my_orchestrator` → `my_echo` + `my_adder`
+
+The docs' exact reference pattern: two specialists in parallel, one merged
+artifact. `node blocks/a2a-demo/my_orchestrator/trigger.mjs` returned:
+
+```json
+{ "echo":  { "status": "completed", "artifacts": [{ "outputId": "echo",  "data": "Echo: Hello!" }] },
+  "adder": { "status": "completed", "artifacts": [{ "outputId": "sum",   "data": { "sum": 7, "a": 3, "b": 4 } }] },
+  "summary": "Echo: completed, Adder: completed" }
+```
+
+### 2. Domain orchestrator — `orchestrator` → topic experts
+
+`npm run blocks:call -- orchestrator "What are graph neural networks used in
+connectomics?"` picked the top-2 specialists offline (same keyword-affinity
+routing as the router, via `scoreTopicAffinity`), fanned out over the network,
+and returned **3 artifacts**: a merged `answer` brief, a deduped `sources`
+list (6 cited papers), and a structured `report` (per-specialist status).
+
+```text
+[progress] Fanning out to 2 specialist(s) in parallel: expert_connectomics, expert_bci_eeg
+[progress] expert_connectomics: completed (2 artifacts)
+[progress] Merged 2/2 specialist answers.
+[artifact] answer · sources · report      [terminal] state=completed
+```
+
+Try it yourself:
+
+```bash
+npm run blocks:a2a:test      # offline contract harness (mocked taskClient)
+npm run blocks:a2a:demo:call # live: my_orchestrator -> my_echo + my_adder
+npm run blocks:call -- orchestrator "<question>"   # live: orchestrator -> experts
+```
+
+## Streaming — request + pipe (live on the network)
+
+All research agents stream answer tokens over the network (request streaming,
+`streams._default`, bytes). The `paper_feed` agent adds **pipe streaming**
+(long-lived sessions) following the Blocks *Stream data* guide:
+
+- **Card**: `capabilities.taskKinds: ["pipe"]` + a dedicated `streams.feed`
+  (events, `affinity: dedicated`). Pipe agents must use a named stream key
+  (not `_default`) and the handler must open the same key.
+- **Handler** (`blocks/lib/pipe.js`): validates the task is a pipe, opens the
+  events stream, matches papers against the corpus with the same hybrid
+  retrieval as the Q&A agents, and streams one structured event per paper
+  (`{ type: 'paper', id, title, year, url, first_author, topic, keywords, at }`)
+  on a loop until the caller cancels or the duration expires. A `summary`
+  artifact is returned when the session ends.
+- **Duration** comes from the caller: `sendMessage({ taskKind: 'pipe', duration })`
+  (1 minute – 30 days). `maxRunningTimeSec` is 2,592,000 (30 days) to cover the
+  whole session.
+- **UI** (webapp) exposes it: pick **Paper Feed**, enter a topic + duration,
+  watch papers stream in live, press **Stop stream** to end the session.
+
+Verified end-to-end over the real network (topic "EEG motor imagery", 1 min):
+
+```text
+[progress] running
+[progress] paper_feed: streaming 40 paper(s) matching "EEG motor imagery"…
+[paper] 2025 — Fine-Tuning Strategies for Continual Online EEG Motor Imagery Decoding https://arxiv.org/pdf/2502.06828v1
+[paper] 2025 — Motor Imagery EEG Signal Classification Using Minimally Random Convolu …
+… (one paper per ~1.5s) …
+[stream] received 10 event(s) — then caller canceled
+[terminal] state=canceled            [artifact] summary
+{ "type": "session_ended", "topic": "EEG motor imagery", "streamed": 10, "poolSize": 40, "ended": "canceled" }
+```
+
+Try it yourself:
+
+```bash
+npm run blocks:pipe:test               # offline contract harness (mocked ctx)
+npm run blocks:pipe:call -- paper_feed "graph neural networks" 2   # live, 2-minute session
+```
+
+## Pricing — live agents are paid ($0.02)
+
+All 8 agents are published **public + paid** on the real network at a flat,
+fair **$0.02** (per task for request agents; per minute for `paper_feed`), with
+**3 free trial tasks** (or minutes) per consumer organization so anyone can
+still try before paying. You keep 85%, Blocks takes 15% (Stripe).
+
+```bash
+# Request agent (per task)
+blocks publish --listing public --billing-mode paid --price 0.02 --free-tasks 3 --accept-terms
+# Pipe agent (per minute)
+blocks publish --listing public --billing-mode paid --price 0.02 --free-minutes 3 --accept-terms
+```
+
+After changing billing mode, restart the running instances (`blocks run`) so
+they pick up the paid registry state. Consumers keep the same SDK calls — paid
+agents are charged automatically from the caller's balance. The demo trio
+(`my_echo`, `my_adder`, `my_orchestrator`) are also $0.02/task.
+
+## Web UI — deployable research console (`ui/`)
+
+`ui/` is a static webapp scaffolded with `blocks init --mode webapp` for all 7
+published agents (router, orchestrator, the two live experts, and the three
+A2A demo agents) and then customized into a star-map themed research console.
+
+- **Auth**: Blocks embed-auth widget (OAuth popup, JWT + 24h refresh token,
+  auto-resume on reload, per-origin partitioned storage). The scaffold's auth
+  plumbing is kept verbatim — only the UI below it was rewritten.
+- **Data-driven agent config**: one `AGENTS` table drives the nav chips, input
+  fields, and artifact rendering (answer text + styled `[n]` citation markers,
+  sources as clickable arXiv cards, orchestrator `report` as pretty JSON).
+- **All 7 agents callable**: switch agent via the chips, sign in once
+  (`signInAndGetClients`), and each section shows its card's inputs/streams.
+
+### Develop locally
+
+```bash
+cd ui && blocks dev        # → http://localhost:4242 (hot reload)
+```
+
+The dev server injects `__blocks_embed_dev.js` so the widget points at the
+production backend during development — full OAuth flow works locally.
+
+### Deploy to Cloudflare Pages
+
+```bash
+cd ui && blocks deploy cloudflare
+```
+
+The CLI resolves the token from `CLOUDFLARE_API_TOKEN` (or prompts once and
+stores it in `~/.config/blocks/credentials.json`). **The token needs exactly
+two permissions**: `Account > Cloudflare Pages > Edit` and
+`Account > Account Settings > Read` — a token that only verifies itself
+returns HTTP 403 on the Pages project lookup. If the token is scoped to a
+single account and cannot list accounts, also set `CLOUDFLARE_ACCOUNT_ID`.
+
+After deploy it offers to register the live URL on each agent's
+`identity.webApps` — that advertises the UI on the agent's catalog page.
+
+### Re-scaffolding after a card change
+
+`blocks init` takes a one-time snapshot of each agent's card into `web/app.js`.
+If a card's inputs/outputs/streams change, re-run `blocks init` in a fresh
+directory against the public listing (all agents here are public + free, so
+no private-listing flip is needed) and re-apply the UI customization.
 
 ## Contracts
 

@@ -1,0 +1,52 @@
+{
+  "identity": {
+    "agentName": "my_echo",
+    "displayName": "Echo",
+    "description": "Reference A2A demo agent: echoes the request text back as a text artifact",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "request",
+        "description": "Text to echo back",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "Hello!"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "echo",
+        "description": "The echoed text",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "a2a-demo",
+      "name": "A2A Demo",
+      "description": "Reference agents for the Blocks agent-to-agent guide"
+    }
+  ],
+  "runtime": {
+    "handler": "./handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 60
+  }
+}

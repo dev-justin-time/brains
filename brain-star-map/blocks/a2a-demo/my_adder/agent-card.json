@@ -1,0 +1,52 @@
+{
+  "identity": {
+    "agentName": "my_adder",
+    "displayName": "Adder",
+    "description": "Reference A2A demo agent: parses { a, b } from the request and returns { sum }",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "request",
+        "description": "JSON like { \"kind\": \"math_add\", \"a\": 3, \"b\": 4 }",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "{\"kind\":\"math_add\",\"a\":3,\"b\":4}"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "sum",
+        "description": "The computed sum as JSON",
+        "contentType": "application/json",
+        "guaranteed": true,
+        "schema": {
+          "type": "object"
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "a2a-demo",
+      "name": "A2A Demo",
+      "description": "Reference agents for the Blocks agent-to-agent guide"
+    }
+  ],
+  "runtime": {
+    "handler": "./handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 60
+  }
+}
