@@ -11,5 +11,7 @@
     "my_adder",
     "my_orchestrator"
   ],
+  "deployTarget": "cloudflare",
+  "lastDeployedUrl": "https://ui-c7w.pages.dev",
   "backendBaseUrl": "https://app.blocks.ai"
 }

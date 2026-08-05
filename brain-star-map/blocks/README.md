@@ -487,9 +487,14 @@ agents are charged automatically from the caller's balance. The demo trio
 
 ## Web UI — deployable research console (`ui/`)
 
-`ui/` is a static webapp scaffolded with `blocks init --mode webapp` for all 7
-published agents (router, orchestrator, the two live experts, and the three
-A2A demo agents) and then customized into a star-map themed research console.
+`ui/` is a static webapp scaffolded with `blocks init --mode webapp` for all 9
+published agents (router, orchestrator, the two live experts, `paper_feed`,
+`star_map_demo`, and the three A2A demo agents) and then customized into a
+star-map themed research console.
+
+- **Live**: deployed to Cloudflare Pages at https://ui-c7w.pages.dev —
+  visitors sign in with a Blocks account and the console calls the agents.
+  The URL is registered in `identity.webApps` on all 9 agent cards.
 
 - **Auth**: Blocks embed-auth widget (OAuth popup, JWT + 24h refresh token,
   auto-resume on reload, per-origin partitioned storage). The scaffold's auth

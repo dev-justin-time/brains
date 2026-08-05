@@ -70,6 +70,16 @@ After a successful deploy the CLI offers to register the live URL on each
 agent's `identity.webApps` (use `--no-card-update` to skip) — that
 advertises the UI on the agent's catalog page on Blocks Network.
 
+**Live deployment (verified):** `https://ui-c7w.pages.dev` (Cloudflare
+Pages). `ui/blocks.config.json` records `deployTarget: cloudflare` and
+`lastDeployedUrl`. The URL is registered in `identity.webApps` on all 9 agent
+cards and confirmed in the registry.
+
+> **Headless note:** the card-update prompt reads the terminal, not piped
+> stdin — `printf 'y' | blocks deploy` silently skips it. If it's skipped,
+> add `identity.webApps: [{ url, label: "ui" }]` to each card yourself and
+> re-publish with the agent's normal `blocks publish` flags.
+
 ## Refresh against a changed agent card
 
 `blocks init` snapshots each agent's card into `web/app.js` at scaffold time.
