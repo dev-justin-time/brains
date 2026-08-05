@@ -12,13 +12,15 @@ blocks/
 │   ├── a2a.js            # agent-to-agent: sub-task calls, parallel fan-out, merge
 │   ├── pipe.js           # pipe-streaming: paper_feed long-lived event session
 │   ├── demo.js           # star_map_demo: LLM-free corpus answers + demo.html artifact
-│   └── sota.js           # sota_tracker: LLM-free benchmark leaderboard answers
+│   ├── sota.js           # sota_tracker: LLM-free benchmark leaderboard answers
+│   └── litreview.js      # lit_review: multi-hop structured literature review
 ├── agents/
 │   ├── router/                   agent-card.json  — cross-topic coordinator
 │   ├── orchestrator/             agent-card.json  — A2A fan-out over the network (generated)
 │   ├── paper_feed/               agent-card.json  — pipe agent: live corpus event stream (generated)
 │   ├── star_map_demo/            agent-card.json  — FREE demo agent: LLM-free answers + demo.html artifact (generated)
 │   ├── sota_tracker/             agent-card.json  — benchmark leaderboard agent: LLM-free SOTA answers (generated)
+│   ├── lit_review/               agent-card.json  — structured literature review agent (generated)
 │   ├── expert_bci_eeg/           agent-card.json  — BCI & EEG Expert
 │   ├── expert_neural_decoding/   agent-card.json  — Neural Decoding Expert
 │   ├── expert_connectomics/      agent-card.json  — Connectomics Expert
@@ -33,7 +35,8 @@ blocks/
 ├── test-a2a.mjs         # offline A2A contract harness (mocked taskClient)
 ├── test-pipe.mjs        # offline pipe-streaming contract harness (mocked ctx)
 ├── test-demo.mjs        # offline star_map_demo contract harness
-└── test-sota.mjs        # offline sota_tracker contract harness
+├── test-sota.mjs        # offline sota_tracker contract harness
+└── test-litreview.mjs   # offline lit_review contract harness (retrieval fallback path)
 
 data/benchmarks.json            # benchmark leaderboard seed (regenerate: npm run blocks:sota:build)
 
@@ -49,7 +52,7 @@ match the actual database — the same data the web app visualizes.
 
 | Blocks concept | Implementation |
 |---|---|
-| **Agent** | 10 generated agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
+| **Agent** | 11 generated agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`) + 1 structured literature review (`lit_review`), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
 | **Agent card** | `agent-card.json` per agent — identity, capabilities, io, streams, tags, runtime (see below). |
 | **Task (request)** | Each card declares `capabilities.taskKinds: ["request"]` — single question in, answer out. |
 | **requestParts / partId** | Input declared as `io.inputs[].id = "question"`. Callers send `requestParts: [{ partId: "question", text: "…" }]`. A missing/mismatched part fails the task fast (`failed` state). |
@@ -403,8 +406,8 @@ node scripts/remove-blocks-agent.mjs <agentName>   # SDK removeAgent()
 
 ### Invites vs. the live agents
 
-All 14 live agents (router, orchestrator, all six experts, `paper_feed`,
-`star_map_demo`, `sota_tracker`, demo trio) are **public** — public agents need no invites;
+All 15 live agents (router, orchestrator, all six experts, `paper_feed`,
+`star_map_demo`, `sota_tracker`, `lit_review`, demo trio) are **public** — public agents need no invites;
 any authenticated caller can use them. To gate one behind this invite flow,
 flip it private: `blocks publish --listing private --billing-mode paid`.
 
@@ -501,11 +504,38 @@ npm run blocks:sota:test      # offline contract harness
 npm run blocks:call -- sota_tracker "What is the SOTA on BCI IV-2a?"
 ```
 
-## Pricing — live agents are paid ($0.02)
+## lit_review — multi-hop structured literature review (live)
 
-All 9 paid agents (router, orchestrator, six experts, `sota_tracker`) are
-published **public + paid** on the real network at a flat, fair **$0.02** (per
-task for request agents; per minute for `paper_feed`), with
+`lit_review` is the multi-hop agent: instead of answering from one topic
+cluster, it retrieves in hops (whole corpus → top-2 topic clusters via the
+same `scoreTopicAffinity` routing the router/A2A orchestrator use → merged +
+deduped context of up to 12 papers), then an LLM writes a structured review
+with fixed sections — **OVERVIEW / METHOD COMPARISON / KEY FINDINGS / GAPS** —
+citing the context as [n]. A retrieval-only fallback produces the same four
+sections when no chat model is available.
+
+```text
+> Compare deep learning and Riemannian approaches for motor imagery decoding
+answer:  ## OVERVIEW / ## METHOD COMPARISON / ## KEY FINDINGS / ## GAPS  (markdown, [n]-cited)
+sources: sources.json (cited papers)
+review:  review.json (structured: question, focus, papers, parsed sections)
+```
+
+Optional `focus` input sharpens the review (e.g. "focus on cross-subject
+generalization"). Priced at **$0.10/task** — the network's only premium-priced
+agent, justified by the multi-hop retrieval + synthesis work.
+
+```bash
+npm run blocks:litreview:test      # offline contract harness (retrieval path)
+npm run blocks:litreview:call -- "<review question>"   # live
+```
+
+## Pricing — live agents are paid ($0.02/$0.10)
+
+10 paid agents are published **public + paid** on the real network: nine
+(router, orchestrator, six experts, `sota_tracker`) at a flat **$0.02** per
+task, and `lit_review` at **$0.10/task** (multi-hop structured review work);
+`paper_feed` is $0.02/minute. All carry
 **3 free trial tasks** (or minutes) per consumer organization so anyone can
 still try before paying. You keep 85%, Blocks takes 15% (Stripe).
 

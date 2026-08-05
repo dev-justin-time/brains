@@ -49,6 +49,14 @@ const SPECIALISTS_INPUT = {
   example: 'expert_connectomics,expert_deep_learning',
 }
 
+const FOCUS_INPUT = {
+  id: 'focus',
+  description: 'Optional focus to sharpen the review (e.g. "compare Riemannian vs deep-learning decoders" or a specific comparison axis)',
+  contentType: 'text/plain',
+  required: false,
+  example: 'focus on cross-subject generalization',
+}
+
 const OUTPUTS = [
   {
     id: 'answer',
@@ -262,6 +270,42 @@ function starMapDemoCard() {
   }
 }
 
+// lit_review — multi-hop structured literature review: whole-corpus retrieval
+// + per-topic depth, then an LLM writes OVERVIEW / METHOD COMPARISON / KEY
+// FINDINGS / GAPS with [n] citations. Structured review.json artifact.
+function litReviewCard() {
+  return card({
+    agentName: 'lit_review',
+    displayName: 'Lit Review — Structured Literature Review',
+    description:
+      'Multi-hop structured literature review: retrieves across the whole corpus AND drills into the top-2 ' +
+      'topic clusters, then writes a four-section review (OVERVIEW, METHOD COMPARISON, KEY FINDINGS, GAPS) ' +
+      'with [n] citations to the source papers. Optional focus input sharpens the comparison axes. ' +
+      'Returns a structured review.json artifact with the cited paper list.',
+    ioExtra: {
+      inputs: [QUESTION_INPUT, FOCUS_INPUT],
+      outputs: [...OUTPUTS, {
+        id: 'review',
+        description: 'Structured review as JSON: question, focus, cited papers, and parsed sections (title + body per section)',
+        contentType: 'application/json',
+        guaranteed: false,
+        schema: { type: 'object' },
+      }],
+    },
+    tags: [
+      {
+        id: 'lit-review',
+        name: 'Structured Literature Review',
+        description: 'Multi-hop retrieval + structured synthesis with citations',
+        examples: [
+          'Compare Riemannian and deep-learning decoders for motor imagery',
+          'What are the open gaps in EEG-based imagined speech decoding?',
+        ],
+      },
+    ],
+  })
+}
+
 // sota_tracker — benchmark leaderboard agent, LLM-free like the demo (reads
 // data/benchmarks.json, no model calls, no stream).
 function sotaTrackerCard() {
@@ -378,7 +422,7 @@ function main() {
     process.exit(1)
   }
 
-  const cards = [starMapDemoCard(), sotaTrackerCard(), paperFeedCard(), routerCard(), orchestratorCard(), ...roster.map(expertCard)]
+  const cards = [starMapDemoCard(), sotaTrackerCard(), litReviewCard(), paperFeedCard(), routerCard(), orchestratorCard(), ...roster.map(expertCard)]
   const wanted = new Set(cards.map(c => c.identity.agentName))
 
   fs.mkdirSync(AGENTS_DIR, { recursive: true })

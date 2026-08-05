@@ -1,0 +1,113 @@
+{
+  "identity": {
+    "agentName": "lit_review",
+    "displayName": "Lit Review — Structured Literature Review",
+    "description": "Multi-hop structured literature review: retrieves across the whole corpus AND drills into the top-2 topic clusters, then writes a four-section review (OVERVIEW, METHOD COMPARISON, KEY FINDINGS, GAPS) with [n] citations to the source papers. Optional focus input sharpens the comparison axes. Returns a structured review.json artifact with the cited paper list.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "A research question about the brain-technology corpus (citations returned as [n])",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "What are the best EEG motor-imagery decoding methods?"
+      },
+      {
+        "id": "focus",
+        "description": "Optional focus to sharpen the review (e.g. \"compare Riemannian vs deep-learning decoders\" or a specific comparison axis)",
+        "contentType": "text/plain",
+        "required": false,
+        "example": "focus on cross-subject generalization"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "The agent’s answer, citing corpus papers as [n]",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "Cited papers as structured JSON (title, year, arXiv URL)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "year": {
+                "type": "number"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "review",
+        "description": "Structured review as JSON: question, focus, cited papers, and parsed sections (title + body per section)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "object"
+        }
+      }
+    ]
+  },
+  "streams": {
+    "_default": {
+      "direction": "outbound",
+      "format": "bytes",
+      "description": "Answer text streamed token-by-token as it is generated",
+      "contentType": "text/plain"
+    }
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "lit-review",
+      "name": "Structured Literature Review",
+      "description": "Multi-hop retrieval + structured synthesis with citations",
+      "examples": [
+        "Compare Riemannian and deep-learning decoders for motor imagery",
+        "What are the open gaps in EEG-based imagined speech decoding?"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

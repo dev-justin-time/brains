@@ -11,10 +11,10 @@
 | Asset | Detail |
 |---|---|
 | Corpus | 215 arXiv papers, 700 keyword-co-occurrence links, 6 communities (Neural Decoding, BCI & EEG, Deep Learning, Connectomics, Clinical Apps, Other) |
-| Live agents (14) | `router`, `orchestrator`, six experts (connectomics, bci_eeg, deep_learning, neural_decoding, clinical_apps, other), `paper_feed` (pipe, $0.02/min), `star_map_demo` (free), `sota_tracker` (benchmark leaderboard), A2A trio `my_echo`/`my_adder`/`my_orchestrator` |
+| Live agents (15) | `router`, `orchestrator`, six experts (connectomics, bci_eeg, deep_learning, neural_decoding, clinical_apps, other), `paper_feed` (pipe, $0.02/min), `star_map_demo` (free), `sota_tracker` (benchmark leaderboard), `lit_review` ($0.10/task), A2A trio `my_echo`/`my_adder`/`my_orchestrator` |
 | Dormant cards (4) | `expert_clinical_apps`, `expert_deep_learning`, `expert_neural_decoding`, `expert_other` — generated, never published |
 | Engine | `server/` hybrid retrieval + local Ollama → **near-zero marginal cost**, LLM-free fast paths |
-| Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 9 paid agents @ $0.02/task (85/15 split) |
+| Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 10 paid agents (9 @ $0.02/task, `lit_review` @ $0.10/task) (85/15 split) |
 
 The unit economics are already good (≈100% margin). Growth = more users, and
 users come from **capability breadth** (more agents/data) and **discovery**
@@ -29,10 +29,11 @@ users come from **capability breadth** (more agents/data) and **discovery**
    `expert_clinical_apps`, `expert_other`. The cards and shared handler already
    exist; publish + run them. Instantly widens the catalog from 2 topic experts to 6.
    - *Pricing:* $0.02/task, 3 free trials. *Effort: hours.*
-2. **`lit_review`** (request) — "compare Riemannian vs deep-learning decoders for
-   motor imagery" → structured literature review with cited papers, method table,
-   and gaps. Built on existing retrieval; the orchestrator can call it.
-   - *Why:* the #1 task researchers actually have. *Price: $0.10/task* (multi-hop).
+2. **`lit_review`** (request) — ✅ **done 2026-08-05**: multi-hop structured
+   review agent (whole-corpus + top-2 topic retrieval → OVERVIEW / METHOD
+   COMPARISON / KEY FINDINGS / GAPS with [n] citations + structured
+   review.json). Published **public + paid $0.10/task**, live + verified over
+   the network. The orchestrator can call it.
 3. **`sota_tracker`** (request) — ✅ **done 2026-08-05**: benchmark leaderboard
    agent seeded from the corpus (`data/benchmarks.json`, 12 datasets), published
    public + paid $0.02, live + verified. "Best accuracy on BCI-IV 2a?" → ranked
@@ -119,16 +120,16 @@ users come from **capability breadth** (more agents/data) and **discovery**
 | # | Move | Effort | Impact | Revenue type |
 |---|---|---|---|---|
 | 1 | Publish 4 dormant expert cards | ✅ done 2026-08-05 | — | per-task |
-| 2 | `lit_review` agent | 1–2 days | High | per-task (priced higher) |
+| 2 | `lit_review` agent | ✅ done 2026-08-05 | — | per-task ($0.10) |
 | 3 | Benchmark leaderboard data + `sota_tracker` | ✅ done 2026-08-05 | — | per-task |
 | 4 | Topic subscriptions on `paper_feed` | 1–2 days | High | recurring (pipe) |
 | 5 | Real citation graph | 2–4 days | Medium-High | unlocks 2 agents |
 | 6 | Shareable briefs + exports in UI | 1–2 days | Medium | acquisition |
 | 7 | `graph_explorer`, `clinical_translator` | 3–5 days | Medium | differentiation |
 
-**Next: #2 `lit_review`** (the only remaining P0) — reuse the existing engine and
-widen the catalog. Also wire `sota_tracker` into the web console so the
-"benchmark answers" feature is visible in the UI.
+**All P0 items done.** Next: #4 topic subscriptions on `paper_feed` (recurring
+pipe revenue), or wire `sota_tracker` + `lit_review` into the web console so
+the benchmark + review features are visible in the UI.
 
 ---
 

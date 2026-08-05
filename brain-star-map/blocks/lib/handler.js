@@ -29,6 +29,7 @@ import { runOrchestrator } from './a2a.js'
 import { runPaperFeed } from './pipe.js'
 import { runStarMapDemo } from './demo.js'
 import { runSotaTracker } from './sota.js'
+import { runLitReview } from './litreview.js'
 
 export default async function handler(task, ctx) {
   const agentName = task?.agentName || process.env.BLOCKS_AGENT_NAME || 'router'
@@ -96,6 +97,9 @@ export default async function handler(task, ctx) {
     } else if (agentName === 'orchestrator') {
       ctx?.reportStatus(`Orchestrating specialist agents for "${question.slice(0, 80)}"…`)
       result = await runOrchestrator(task, ctx, emit)
+    } else if (agentName === 'lit_review') {
+      ctx?.reportStatus(`Preparing a structured literature review for "${question.slice(0, 80)}"…`)
+      result = await runLitReview(task, ctx, emit)
     } else {
       const agent = resolveAgent(agentName)
       result = await runExpert(agent, task, ctx, emit)
@@ -111,6 +115,7 @@ export default async function handler(task, ctx) {
 
     // Orchestrator path: additionally attach the structured per-specialist
     // report as a third artifact (io.outputs.report).
+    // lit_review path: attach the structured review JSON (io.outputs.review).
     const artifacts = makeArtifacts(result.answer, result.sources)
     if (result.report) {
       artifacts.push({
@@ -118,6 +123,14 @@ export default async function handler(task, ctx) {
         mimeType: 'application/json',
         outputId: 'report',
         fileName: 'report.json',
+      })
+    }
+    if (result.review) {
+      artifacts.push({
+        data: JSON.stringify(result.review, null, 2),
+        mimeType: 'application/json',
+        outputId: 'review',
+        fileName: 'review.json',
       })
     }
     return { artifacts }
