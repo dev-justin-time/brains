@@ -42,6 +42,14 @@ console.log('\n== 3. subgraph ==')
   ok('sources populated', res.sources.length > 0, `${res.sources.length} sources`)
 }
 
+console.log('\n== 3b. distinctive title matching (regression) ==')
+{
+  // "subgraph around Artemis" used to match HiPerMotif ("Subgraph Isomorphism")
+  // because ties resolved by array order. Now distinctive tokens must win.
+  const res = answerGraphQuestion('subgraph around Artemis')
+  ok('Artemis subgraph matches the right paper', res.subgraph && /Artemis/.test(res.subgraph.root.title), res.subgraph?.root?.title?.slice(0, 60) || res.answer.slice(0, 60))
+}
+
 console.log('\n== 4. communities ==')
 {
   const res = answerGraphQuestion('What are the communities?')

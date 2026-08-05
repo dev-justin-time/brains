@@ -21,6 +21,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { search } from '../../server/search.js'
 import { extractQuestion } from './engine.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -167,28 +168,67 @@ function topicFilter(normalizedQ, index) {
   return null
 }
 
+// Words that are graph-structure markers or filler — never part of a paper title.
+const STOP_TOKENS = new Set([
+  'subgraph', 'neighbor', 'neighbors', 'related', 'connected', 'around', 'about',
+  'near', 'close', 'paper', 'papers', 'show', 'list', 'between', 'and', 'for',
+  'from', 'with', 'the', 'of', 'in', 'on', 'to', 'a', 'an', 'what', 'is', 'are',
+])
+
+// Strip graph-structure words + filler so the remaining text is a title lookup.
+function cleanTitleQuery(normalizedQ) {
+  return normalizedQ
+    .split(' ')
+    .filter(t => t && !STOP_TOKENS.has(t))
+    .join(' ')
+}
+
+// Find a paper by id or title. Ids match first (dot-normalized so "2607.03094v1"
+// matches "2607 03094v1" after normalize()); then the existing hybrid search()
+// is reused for title lookup (far more robust than hand-rolled token counting);
+// finally a distinctive-token fallback for when the DB index is unavailable.
 function findPaper(normalizedQ, index) {
-  // Match by id, exact title token, or arxiv id fragment.
-  const tokens = normalizedQ.split(' ')
+  // 1. Exact id (normalize dots/spaces on both sides).
+  const qCompact = normalizedQ.replace(/\s+/g, '')
   for (const n of index.nodes) {
-    if (n.id && normalizedQ.includes(n.id)) return n
+    const nid = (n.id || '').toLowerCase().replace(/\s+/g, '')
+    if (nid && qCompact.includes(nid)) return n
   }
-  // Try longest meaningful title fragment (>= 4 chars) present in the question.
-  const titleTokens = normalizedQ.split(' ').filter(t => t.length >= 4)
+
+  // 2. Reuse the corpus hybrid retrieval for title matching.
+  const titleQ = cleanTitleQuery(normalizedQ)
+  if (titleQ.length >= 4) {
+    try {
+      const hits = search(titleQ, { topK: 3 })
+      for (const h of hits) {
+        const n = index.byId.get(h.id)
+        if (!n) continue
+        const title = n.title.toLowerCase()
+        // Require at least one distinctive token actually present in the title.
+        const distinctive = titleQ.split(' ').filter(t => t.length >= 4 && !STOP_TOKENS.has(t))
+        if (distinctive.some(t => title.includes(t))) return n
+      }
+    } catch { /* DB index unavailable — fall through to token matching */ }
+  }
+
+  // 3. Fallback: distinctive-token counting, weighted by token length (longer =
+  // more distinctive), so "artemis" beats the generic "subgraph" on ties.
+  const titleTokens = normalizedQ.split(' ').filter(t => t.length >= 4 && !STOP_TOKENS.has(t))
+  if (!titleTokens.length) return null
   let best = null
-  let bestLen = 0
+  let bestScore = 0
   for (const n of index.nodes) {
     const t = n.title.toLowerCase()
-    let matched = 0
+    let score = 0
     for (const tok of titleTokens) {
-      if (t.includes(tok)) matched++
+      if (t.includes(tok)) score += tok.length
     }
-    if (matched > bestLen) {
-      bestLen = matched
+    if (score > bestScore) {
+      bestScore = score
       best = n
     }
   }
-  return bestLen >= 1 ? best : null
+  return bestScore > 0 ? best : null
 }
 
 // ---------- answer ----------
@@ -273,8 +313,10 @@ export function answerGraphQuestion(question) {
     }
   }
 
-  // Intent 5: neighbors / subgraph around a paper.
-  if (/(neighbor|related|connected|around|about|subgraph|near|close)/.test(q) || findPaper(q, index)) {
+  // Intent 5: neighbors / subgraph around a paper. Fires only when the query
+  // actually asks for graph structure — NOT as a catch-all (so "What is
+  // connectomics?" doesn't return a random paper's subgraph).
+  if (/(neighbor|related|connected|around|subgraph|near|close)/.test(q)) {
     const paper = findPaper(q, index)
     if (paper) {
       const sub = oneHopSubgraph(index, paper.id)

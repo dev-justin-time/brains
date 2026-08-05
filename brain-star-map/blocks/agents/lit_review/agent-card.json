@@ -108,6 +108,6 @@
     "handlerExport": "default",
     "concurrency": 1,
     "expectedInstances": 1,
-    "maxRunningTimeSec": 300
+    "maxRunningTimeSec": 600
   }
 }

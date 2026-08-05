@@ -96,6 +96,17 @@ const RUNTIME = {
   maxRunningTimeSec: 300,
 }
 
+// Premium multi-section agents (lit_review, grant_writer) generate long
+// structured documents — give them double the standard budget (measured
+// generations ~80-120s on this machine; leaves headroom on slower boxes).
+const LONG_RUNTIME = {
+  handler: HANDLER_PATH,
+  handlerExport: 'default',
+  concurrency: 1,
+  expectedInstances: 1,
+  maxRunningTimeSec: 600,
+}
+
 // Pipe agents run for the caller-set duration (up to 30 days = 2,592,000s),
 // so their maxRunningTimeSec must cover the whole session.
 const PIPE_RUNTIME = {
@@ -106,7 +117,7 @@ const PIPE_RUNTIME = {
   maxRunningTimeSec: 2_592_000,
 }
 
-function card({ agentName, displayName, description, ioExtra, tags }) {
+function card({ agentName, displayName, description, ioExtra, tags, runtime = RUNTIME }) {
   return {
     identity: {
       agentName,
@@ -119,7 +130,7 @@ function card({ agentName, displayName, description, ioExtra, tags }) {
     io: ioExtra || { inputs: [QUESTION_INPUT], outputs: OUTPUTS },
     streams: STREAMS,
     tags: [...COMMON_TAGS, ...tags],
-    runtime: RUNTIME,
+    runtime,
   }
 }
 
@@ -277,6 +288,7 @@ function litReviewCard() {
   return card({
     agentName: 'lit_review',
     displayName: 'Lit Review — Structured Literature Review',
+    runtime: LONG_RUNTIME,
     description:
       'Multi-hop structured literature review: retrieves across the whole corpus AND drills into the top-2 ' +
       'topic clusters, then writes a four-section review (OVERVIEW, METHOD COMPARISON, KEY FINDINGS, GAPS) ' +
@@ -397,6 +409,7 @@ function grantWriterCard() {
   return card({
     agentName: 'grant_writer',
     displayName: 'Grant Writer — Proposal Draft',
+    runtime: LONG_RUNTIME,
     description:
       'Drafts the front matter of a research grant proposal from a research idea: TITLE, BACKGROUND, RELATED WORK ' +
       '(with [n] citations from the corpus via multi-hop retrieval), PROPOSED CONTRIBUTION, and RISKS & OPEN ' +

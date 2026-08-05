@@ -131,6 +131,7 @@ users come from **capability breadth** (more agents/data) and **discovery**
 | 5 | Real citation graph | 2–4 days | Medium-High | unlocks 2 agents |
 | 6 | Shareable briefs + exports in UI | 1–2 days | Medium | acquisition |
 | 7 | `graph_explorer`, `clinical_translator` | ✅ done 2026-08-05 | — | differentiation |
+| 8 | `grant_writer` | ✅ done 2026-08-05 | — | per-task ($0.10) |
 
 **All P0 + P2 differentiators done.** Next: #4 topic subscriptions on
 `paper_feed` (recurring pipe revenue), or wire the new agents (`sota_tracker`,
