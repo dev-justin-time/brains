@@ -16,6 +16,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { directLookup, search } from '../../server/search.js'
+import { extractQuestion } from './engine.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEMO_HTML_PATH = path.join(__dirname, '..', '..', 'public', 'demo.html')
@@ -53,10 +54,8 @@ export function answerQuestion(question) {
 }
 
 export async function runStarMapDemo(task, ctx) {
-  const question = (task?.requestParts?.[0]?.text ?? '').trim()
-  if (!question) {
-    throw new Error('Missing required input "question" — send requestParts: [{ partId: "question", text: "..." }]')
-  }
+  // Reuse the shared input contract (partId "question", fail fast on mismatch).
+  const question = extractQuestion(task)
 
   ctx?.reportStatus('star_map_demo: answering from the corpus index (no LLM)…')
 

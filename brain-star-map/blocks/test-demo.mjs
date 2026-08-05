@@ -60,7 +60,8 @@ console.log('\n== 4. input contract ==')
     await runStarMapDemo({ requestParts: [] }, ctx)
   } catch (err) {
     threw = true
-    ok('missing question rejected', /Missing required input "question"/.test(err.message), err.message)
+    // extractQuestion (the shared request contract) rejects empty parts.
+    ok('missing question rejected', /Missing requestParts/.test(err.message), err.message)
   }
   ok('missing question throws', threw)
 }

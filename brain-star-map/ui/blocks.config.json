@@ -1,0 +1,15 @@
+{
+  "templateVersion": "1.0.0",
+  "agents": [
+    "router",
+    "orchestrator",
+    "expert_connectomics",
+    "expert_bci_eeg",
+    "paper_feed",
+    "star_map_demo",
+    "my_echo",
+    "my_adder",
+    "my_orchestrator"
+  ],
+  "backendBaseUrl": "https://app.blocks.ai"
+}

@@ -9,3 +9,11 @@ data/
 .env
 .env.*
 !.env.example
+
+# Node dependencies (install with `npm install`)
+node_modules/
+
+# Blocks agent runtime logs + watchdog PID files
+blocks/logs/
+*.log
+*.pid

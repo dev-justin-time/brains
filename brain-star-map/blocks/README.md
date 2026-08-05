@@ -15,6 +15,7 @@ blocks/
 │   ├── router/                   agent-card.json  — cross-topic coordinator
 │   ├── orchestrator/             agent-card.json  — A2A fan-out over the network (generated)
 │   ├── paper_feed/               agent-card.json  — pipe agent: live corpus event stream (generated)
+│   ├── star_map_demo/            agent-card.json  — FREE demo agent: LLM-free answers + demo.html artifact (generated)
 │   ├── expert_bci_eeg/           agent-card.json  — BCI & EEG Expert
 │   ├── expert_neural_decoding/   agent-card.json  — Neural Decoding Expert
 │   ├── expert_connectomics/      agent-card.json  — Connectomics Expert
@@ -41,7 +42,7 @@ match the actual database — the same data the web app visualizes.
 
 | Blocks concept | Implementation |
 |---|---|
-| **Agent** | 8 generated agents: 6 topic experts + 1 router + 1 orchestrator, plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
+| **Agent** | 9 generated agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
 | **Agent card** | `agent-card.json` per agent — identity, capabilities, io, streams, tags, runtime (see below). |
 | **Task (request)** | Each card declares `capabilities.taskKinds: ["request"]` — single question in, answer out. |
 | **requestParts / partId** | Input declared as `io.inputs[].id = "question"`. Callers send `requestParts: [{ partId: "question", text: "…" }]`. A missing/mismatched part fails the task fast (`failed` state). |
@@ -168,6 +169,55 @@ Connects the instance to the network (PubNub) and waits for tasks. It logs:
 Leave this process running for consumers to reach the agent. Stop it with
 `Ctrl+C` or `taskkill //IM blocks.exe //F`.
 
+### 4b. Run as a service (auto-start + crash recovery)
+
+A plain `blocks run` dies with its terminal. To keep the router serving across
+reboots and crashes there's a watchdog supervisor:
+
+```bash
+node scripts/watch-blocks-agent.js router   # supervised `blocks run`
+```
+
+- **PID lock** — one watchdog per agent (cards declare `expectedInstances: 1`,
+  so a second instance would fight over the registry entry).
+- **Restart with backoff** — restarts on ANY exit, 5s → 120s, resets after
+  10 minutes of uninterrupted uptime.
+- **Child PID file** — `blocks/logs/router.child.pid` points at the live agent
+  process, so scripts/tests can target it (e.g. to prove recovery).
+- **Logs** — agent output + watchdog events append to
+  `blocks/logs/router-watchdog.log`.
+
+**Auto-start at logon (no admin needed).** Task Scheduler registration is
+admin-gated on this machine (`Access is denied` for both `schtasks /Create`
+and `Register-ScheduledTask` as a standard user), so the watchdog is launched
+from the Windows Startup folder instead — the standard per-user mechanism:
+
+```bash
+# installed at: %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\BrainStarMap Router.vbs
+# source kept in the repo: scripts/start-router-at-logon.vbs
+```
+
+The VBS runs `watch-blocks-agent.js router` hidden at every logon. To verify
+recovery after a crash:
+
+```bash
+taskkill //F //PID $(cat blocks/logs/router.child.pid) && sleep 12
+tail -5 blocks/logs/router-watchdog.log   # "agent exited … restarting in 5s…"
+node scripts/call-blocks-agent.mjs router "How many papers are in the corpus?"
+```
+
+If you later get an admin shell, register the same watchdog as a proper
+scheduled task instead of the Startup folder:
+
+```powershell
+$a = New-ScheduledTaskAction -Execute 'C:\Program Files\nodejs\node.exe' `
+  -Argument '"C:\Users\dividicus\Downloads\brains\brain-star-map\scripts\watch-blocks-agent.js" router' `
+  -WorkingDirectory 'C:\Users\dividicus\Downloads\brains\brain-star-map'
+Register-ScheduledTask -TaskName 'BrainStarMap Router' -Action $a `
+  -Trigger (New-ScheduledTaskTrigger -AtLogOn) `
+  -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit ([TimeSpan]::Zero)) -Force
+```
+
 ### 5. Verify the registry entry
 
 ```bash
@@ -211,7 +261,14 @@ Calling "router" with: What are graph neural networks used for in connectomics?
 - **Going private again**: `blocks publish --listing private --billing-mode free`.
 - **Paid**: `blocks publish --listing public --billing-mode paid --price <usd>`
   (per task or per minute, 85/15 split, Stripe).
-- **Invites** (private agents / A2A): `blocks invite`.
+- **Rotating the API key**: `blocks login --write-env` rewrites `BLOCKS_API_KEY`
+  in the root `.env` (prints the new `bk_…` key). Every agent dir keeps its own
+  copy, so after rotating run:
+  `cp .env blocks/agents/*/.env blocks/a2a-demo/*/.env`, then restart the
+  agents (instances load the key at startup; the router restarts itself via the
+  watchdog).
+- **Invites** (private agents): `blocks invite` — see
+  [Private access — invites & grants](#private-access--invites--grants-verified).
 - Each agent directory is its own deployment (one `agent-card.json` per dir);
   deploy any card the same way.
 
@@ -268,6 +325,82 @@ npm run blocks:a2a:demo:call # live: my_orchestrator -> my_echo + my_adder
 npm run blocks:call -- orchestrator "<question>"   # live: orchestrator -> experts
 ```
 
+## Private access — invites & grants (verified)
+
+Private agents (`--listing private`) are only callable by parties you grant
+access to. Access is managed through **invitations**, which the invitee must
+**accept** before a grant is created. The full lifecycle below was verified
+live against a throwaway private agent (`grant_demo` — registered, invited,
+revoked, then deleted; the live public agents were never touched).
+
+### 1. Register a private agent
+
+```bash
+cd blocks/agents/<agent> && blocks register --org-name <org>
+```
+
+Returns: `Visibility: Private` and `Next: invite organizations before they
+can use this agent.` (register publishes private + free by default).
+
+### 2. Send an invitation — by user email or org slug
+
+```bash
+blocks invite send <agentName> --email partner@example.com   # by user
+blocks invite send <agentName> --org <org-slug>              # by organization
+```
+
+Output: `Invitation sent to partner@example.com`
+
+### 3. See the pending invitation
+
+```bash
+blocks invite list <agentName>
+```
+
+```text
+ID                                    EMAIL                         SCOPE  CREATED                   EXPIRES
+019fd36b-44fc-7089-b459-7f56a5b5ced0  partner@example.com           user   2026-08-05T19:34:10.353Z  2026-08-12T19:34:10.315Z
+```
+
+Invitations **expire after 7 days** (the `EXPIRES` column).
+
+### 4. Grants appear only after the invitee accepts
+
+```bash
+blocks invite grants <agentName>   # → "No active grants." until accepted
+```
+
+The invitee accepts from their own Blocks account (`blocks invite accept`).
+Until they do, the invite stays pending and there is no grant.
+
+### 5. Revoking access
+
+```bash
+blocks invite revoke <agentName> --email partner@example.com   # or --org <org-slug>
+```
+
+**Note (verified):** `revoke` only works on **active grants**. A *pending*
+invite cannot be cancelled from the CLI — it errors with `no active grant
+found` and the invite stays listed until it expires (7 days).
+
+### 6. Cleaning up a throwaway private agent
+
+Stop the running instance, then delete the registry entry — its pending
+invites become unreachable with it (the agent 404s on `invite list`
+afterwards):
+
+```bash
+taskkill //F //PID <instance-pid>
+node scripts/remove-blocks-agent.mjs <agentName>   # SDK removeAgent()
+```
+
+### Invites vs. the live agents
+
+All 9 live agents (router, orchestrator, experts, `paper_feed`,
+`star_map_demo`, demo trio) are **public** — public agents need no invites;
+any authenticated caller can use them. To gate one behind this invite flow,
+flip it private: `blocks publish --listing private --billing-mode paid`.
+
 ## Streaming — request + pipe (live on the network)
 
 All research agents stream answer tokens over the network (request streaming,
@@ -308,6 +441,30 @@ Try it yourself:
 npm run blocks:pipe:test               # offline contract harness (mocked ctx)
 npm run blocks:pipe:call -- paper_feed "graph neural networks" 2   # live, 2-minute session
 ```
+
+## star_map_demo — FREE demo agent (live)
+
+`star_map_demo` is published **public + free** — deliberately **LLM-free**, so
+it can honestly be free and answers instantly. It reuses the web app's
+`directLookup` + hybrid retrieval (`server/search.js`) and always attaches the
+interactive 3D star-map page (`public/demo.html`, ~24 KB) as a downloadable
+`text/html` file artifact.
+
+```text
+> How many papers are in the corpus?
+answer: The corpus contains 215 papers across 6 topic areas, connected by 700 keyword-co-occurrence edges.
+demo:   star-map-demo.html (24,211 chars) — the full interactive page, downloadable
+```
+
+Try it:
+
+```bash
+npm run blocks:demo:test              # offline contract harness (mocked ctx)
+npm run blocks:demo:call -- star_map_demo "List papers about EEG motor imagery"
+```
+
+It is the only **free** agent on the network (all others are $0.02 paid) —
+anonymous users can try it from the browser up to the anonymous quota.
 
 ## Pricing — live agents are paid ($0.02)
 

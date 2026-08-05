@@ -64,14 +64,6 @@
       }
     ]
   },
-  "streams": {
-    "_default": {
-      "direction": "outbound",
-      "format": "bytes",
-      "description": "Answer text streamed token-by-token as it is generated",
-      "contentType": "text/plain"
-    }
-  },
   "tags": [
     {
       "id": "brain-tech",

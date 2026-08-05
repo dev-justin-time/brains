@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brain Star Map — Research Console</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="starfield" aria-hidden="true"></div>
+
+  <!-- Local-dev only: served by `blocks dev`, returns 404 in production. -->
+  <script src="/__blocks_embed_dev.js"></script>
+  <!--
+    Load the widget via a dynamically-created <script>, NOT document.write:
+    Chrome refuses to execute a parser-blocking, cross-site script injected
+    via document.write, which would leave window.BlocksAuth undefined on a
+    deployed (cross-origin) static host.
+  -->
+  <script>
+  (function () {
+    var dev = typeof window !== 'undefined' ? window.__BLOCKS_EMBED_DEV__ : null;
+    var base = (dev && dev.backendBaseUrl) ? dev.backendBaseUrl : 'https://app.blocks.ai';
+    var s = document.createElement('script');
+    s.src = base + '/embed/auth.0.1.0.min.js';
+    s.async = false;
+    document.head.appendChild(s);
+  })();
+  </script>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">✦</span>
+      <div class="brand-text">
+        <h1>Brain Star Map</h1>
+        <p>Research Console · 7 live agents · Network Neuroscience &amp; Connectomics</p>
+      </div>
+    </div>
+    <div id="auth-bar">
+      <span id="auth-state" class="auth-state" hidden></span>
+      <button id="sign-in-btn" class="btn btn-auth" type="button">
+        <span class="btn-dot" aria-hidden="true"></span>Sign in with Blocks
+      </button>
+      <button id="sign-out-btn" class="btn btn-ghost" type="button" hidden>Sign out</button>
+      <span id="auth-error" class="auth-error" role="alert"></span>
+    </div>
+  </header>
+
+  <main id="app">
+    <section id="signed-out" class="gate">
+      <div class="gate-card">
+        <div class="gate-icon" aria-hidden="true">✧</div>
+        <h2>Sign in to start researching</h2>
+        <p>Authenticate with your Blocks account, then ask questions across the 215-paper corpus — or fan them out to specialist agents in parallel.</p>
+        <button id="gate-sign-in-btn" class="btn btn-auth btn-lg" type="button">
+          <span class="btn-dot" aria-hidden="true"></span>Sign in with Blocks
+        </button>
+      </div>
+    </section>
+
+    <section id="console" hidden>
+      <nav id="agent-nav" class="agent-nav" aria-label="Select agent"></nav>
+
+      <div class="console-grid">
+        <aside class="agent-card" id="agent-card">
+          <div class="agent-card-head">
+            <span class="agent-orb" id="agent-orb" aria-hidden="true"></span>
+            <div>
+              <h2 id="agent-title"></h2>
+              <p id="agent-tagline"></p>
+            </div>
+          </div>
+          <ul class="agent-badges" id="agent-badges"></ul>
+          <p class="agent-kind" id="agent-kind"></p>
+        </aside>
+
+        <div class="console-main">
+          <div id="status-line" class="status-line" hidden></div>
+
+          <div id="answer-area" class="answer-area" hidden>
+            <div class="answer-meta">
+              <span id="answer-label">ANSWER</span>
+              <span id="answer-state" class="answer-state"></span>
+            </div>
+            <div id="answer-text" class="answer-text"></div>
+          </div>
+
+          <div id="sources-area" class="sources-area" hidden>
+            <div class="sources-meta">SOURCES</div>
+            <ul id="sources-list" class="sources-list"></ul>
+          </div>
+
+          <div id="report-area" class="report-area" hidden>
+            <div class="sources-meta">REPORT</div>
+            <pre id="report-text" class="report-text"></pre>
+          </div>
+
+          <div id="demo-area" class="report-area" hidden>
+            <div class="sources-meta">RESULT</div>
+            <pre id="demo-text" class="report-text"></pre>
+          </div>
+
+          <form id="composer" class="composer" autocomplete="off">
+            <div id="composer-inputs" class="composer-inputs"></div>
+            <div class="composer-actions">
+              <button id="send-btn" class="btn btn-primary" type="submit" disabled>
+                <span class="btn-arrow" aria-hidden="true">➤</span> Send
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Powered by <a href="https://blocks.ai" target="_blank" rel="noreferrer">Blocks Network</a> · agents: router · orchestrator · expert_connectomics · expert_bci_eeg · paper_feed · star_map_demo · my_echo · my_adder · my_orchestrator
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
