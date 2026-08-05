@@ -1,0 +1,5 @@
+unzip brain-star-map.zip
+cd brain-star-map
+npm install
+npm run build
+# Deploy the generated dist/ folder to *.kimi.page

@@ -1,0 +1,21 @@
+﻿Requirement,Implementation
+"**Pure static, no backend**",Single `index.html` + bundled JS. Data baked into `graph_data.json`.
+**~200 real papers**,"215 papers fetched live from arXiv (BCI, EEG decoding, connectomics, neural security, deep learning, clinical)."
+"**Real metadata, no hallucination**","Every title, author, abstract, year, and URL is from arXiv API."
+**Edges**,"700 keyword co-occurrence edges (≥2 shared terms). Honest `data-completeness` badge states arXiv has no citation API, so this is the permitted fallback."
+**True 3D only**,`react-force-graph-3d` + Three.js. Orbit/zoom/pan. No 2D canvas fallback.
+**THREE.Sprite radial glow**,"Procedural radial gradient on canvas, `AdditiveBlending`, `depthWrite: false`."
+**Jewel-tone communities**,"Louvain greedy modularity → merged into ~8 semantic clusters (ruby, sapphire, emerald, amethyst, topaz, carnelian, turquoise, violet)."
+"**Gold edges, ultra-faint**",`#C8A951` at opacity 0.05 (0.015 when dimmed). Never forms a dense web.
+**UnrealBloomPass + stardust**,"Post-processing bloom (strength 1.5, radius 0.4, threshold 0.85) + 6,000 additive white particles."
+"**Ellipsoid layout, hard min spacing**","Fixed `fx/fy/fz` positions. Rejection sampling with `MIN_DIST = 8`. No force simulation = no ""hairball""."
+**Top ~700 edges**,"Sorted by co-occurrence weight, capped at 700."
+**Camera entrance**,Zoom from z=800 → 320 over frames + `autoRotateSpeed: 0.6`.
+**Wheel lock**,Canvas wheel listener with `{passive: false}` + `preventDefault()`. Page never scrolls.
+**Legend hover/click**,Hover dims non-community nodes to opacity 0.12. Click toggles persistent filter.
+**Node click**,"Highlights neighbors (opacity 0.65) + opens right detail card with full abstract + ""Open paper ↗"" arXiv link."
+**Download Corpus**,ZIP export (CSV + README) via JSZip + file-saver.
+**ErrorBoundary**,"Catches runtime errors, shows reloadable error screen. No white screen."
+**Hook safety**,All `useState/useEffect/useMemo/useCallback` called before any early return.
+**Author compatibility**,"`getFirstAuthor()` handles `string`, `string[]`, missing, comma-separated."
+**Responsive**,Detail card shrinks on mobile; legend stays usable.
