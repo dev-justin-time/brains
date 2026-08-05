@@ -1,8 +1,8 @@
 {
   "identity": {
-    "agentName": "expert_clinical_apps",
-    "displayName": "Clinical Apps Expert",
-    "description": "Clinical Apps Expert — one of the specialist research agents in the brain-technology network. Specialty: Clinical Apps (2 papers in the corpus). Top keywords: eeg, deep learning, seizure, epilepsy, erp, clinical. Answers questions in its specialty with citations.",
+    "agentName": "sota_tracker",
+    "displayName": "SOTA Tracker — Benchmark Leaderboard",
+    "description": "Benchmark leaderboard agent: answers state-of-the-art questions (\"what’s the SOTA on BCI IV-2a?\") with ranked, self-reported results seeded from the corpus abstracts. LLM-free — pure retrieval from data/benchmarks.json, so every call is instant and nearly free.",
     "version": "1.0.0",
     "provider": {
       "organization": "Brain Citation Star Map"
@@ -17,16 +17,16 @@
     "inputs": [
       {
         "id": "question",
-        "description": "A research question about the brain-technology corpus (citations returned as [n])",
+        "description": "A SOTA / leaderboard question, e.g. \"What is the state of the art on BCI IV-2a?\" or \"all benchmarks\"",
         "contentType": "text/plain",
         "required": true,
-        "example": "What are the best EEG motor-imagery decoding methods?"
+        "example": "Best accuracy on BCI IV-2a"
       }
     ],
     "outputs": [
       {
         "id": "answer",
-        "description": "The agent’s answer, citing corpus papers as [n]",
+        "description": "Ranked leaderboard answer (self-reported numbers from corpus abstracts)",
         "contentType": "text/plain",
         "guaranteed": true,
         "schema": {
@@ -35,7 +35,7 @@
       },
       {
         "id": "sources",
-        "description": "Cited papers as structured JSON (title, year, arXiv URL)",
+        "description": "Cited papers behind the leaderboard entries as structured JSON (title, year, arXiv URL)",
         "contentType": "application/json",
         "guaranteed": false,
         "schema": {
@@ -58,14 +58,6 @@
       }
     ]
   },
-  "streams": {
-    "_default": {
-      "direction": "outbound",
-      "format": "bytes",
-      "description": "Answer text streamed token-by-token as it is generated",
-      "contentType": "text/plain"
-    }
-  },
   "tags": [
     {
       "id": "brain-tech",
@@ -78,12 +70,12 @@
       "description": "Answers questions with citations to a 215-paper arXiv corpus"
     },
     {
-      "id": "expert_clinical_apps",
-      "name": "Clinical Apps",
-      "description": "Clinical Apps specialty (2 papers)",
+      "id": "benchmark-leaderboard",
+      "name": "Benchmark Leaderboard",
+      "description": "State-of-the-art answers per dataset, seeded from corpus abstracts",
       "examples": [
-        "Tell me about clinical apps",
-        "Summarize the paper \"From Handcrafted Features to Functional Edge Learning: Evolu…\""
+        "What is the SOTA on BCI IV-2a?",
+        "Show all benchmarks"
       ]
     }
   ],

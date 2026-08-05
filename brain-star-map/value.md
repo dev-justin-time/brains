@@ -11,10 +11,10 @@
 | Asset | Detail |
 |---|---|
 | Corpus | 215 arXiv papers, 700 keyword-co-occurrence links, 6 communities (Neural Decoding, BCI & EEG, Deep Learning, Connectomics, Clinical Apps, Other) |
-| Live agents (9) | `router`, `orchestrator`, `expert_connectomics`, `expert_bci_eeg`, `paper_feed` (pipe, $0.02/min), `star_map_demo` (free), A2A trio `my_echo`/`my_adder`/`my_orchestrator` |
+| Live agents (14) | `router`, `orchestrator`, six experts (connectomics, bci_eeg, deep_learning, neural_decoding, clinical_apps, other), `paper_feed` (pipe, $0.02/min), `star_map_demo` (free), `sota_tracker` (benchmark leaderboard), A2A trio `my_echo`/`my_adder`/`my_orchestrator` |
 | Dormant cards (4) | `expert_clinical_apps`, `expert_deep_learning`, `expert_neural_decoding`, `expert_other` — generated, never published |
 | Engine | `server/` hybrid retrieval + local Ollama → **near-zero marginal cost**, LLM-free fast paths |
-| Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 8 paid agents @ $0.02/task (85/15 split) |
+| Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 9 paid agents @ $0.02/task (85/15 split) |
 
 The unit economics are already good (≈100% margin). Growth = more users, and
 users come from **capability breadth** (more agents/data) and **discovery**
@@ -33,9 +33,10 @@ users come from **capability breadth** (more agents/data) and **discovery**
    motor imagery" → structured literature review with cited papers, method table,
    and gaps. Built on existing retrieval; the orchestrator can call it.
    - *Why:* the #1 task researchers actually have. *Price: $0.10/task* (multi-hop).
-3. **`sota_tracker`** (request) — per-task leaderboard agent: "best accuracy on
-   BCI-IV 2a?" → dataset/task → best reported metric + paper. Feeds `dataset_finder`.
-   - *Why:* benchmark numbers are what researchers search for constantly.
+3. **`sota_tracker`** (request) — ✅ **done 2026-08-05**: benchmark leaderboard
+   agent seeded from the corpus (`data/benchmarks.json`, 12 datasets), published
+   public + paid $0.02, live + verified. "Best accuracy on BCI-IV 2a?" → ranked
+   self-reported metric + paper (LLM-free, zero model cost). Feeds `dataset_finder`.
 
 ### P1 — new data unlocks these
 4. **`dataset_finder`** — research question → matching public datasets
@@ -119,14 +120,15 @@ users come from **capability breadth** (more agents/data) and **discovery**
 |---|---|---|---|---|
 | 1 | Publish 4 dormant expert cards | ✅ done 2026-08-05 | — | per-task |
 | 2 | `lit_review` agent | 1–2 days | High | per-task (priced higher) |
-| 3 | Benchmark leaderboard data + `sota_tracker` | 2–3 days | High | per-task |
+| 3 | Benchmark leaderboard data + `sota_tracker` | ✅ done 2026-08-05 | — | per-task |
 | 4 | Topic subscriptions on `paper_feed` | 1–2 days | High | recurring (pipe) |
 | 5 | Real citation graph | 2–4 days | Medium-High | unlocks 2 agents |
 | 6 | Shareable briefs + exports in UI | 1–2 days | Medium | acquisition |
 | 7 | `graph_explorer`, `clinical_translator` | 3–5 days | Medium | differentiation |
 
-**Do 2–3 next**: they reuse the existing engine, widen the catalog, and give the
-web console a "benchmark answers" feature nobody else has.
+**Next: #2 `lit_review`** (the only remaining P0) — reuse the existing engine and
+widen the catalog. Also wire `sota_tracker` into the web console so the
+"benchmark answers" feature is visible in the UI.
 
 ---
 

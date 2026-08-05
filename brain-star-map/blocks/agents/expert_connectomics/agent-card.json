@@ -6,13 +6,7 @@
     "version": "1.0.0",
     "provider": {
       "organization": "Brain Citation Star Map"
-    },
-    "webApps": [
-      {
-        "url": "https://ui-c7w.pages.dev",
-        "label": "ui"
-      }
-    ]
+    }
   },
   "capabilities": {
     "taskKinds": [

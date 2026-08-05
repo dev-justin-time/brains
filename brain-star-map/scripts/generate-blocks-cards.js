@@ -262,6 +262,63 @@ function starMapDemoCard() {
   }
 }
 
+// sota_tracker — benchmark leaderboard agent, LLM-free like the demo (reads
+// data/benchmarks.json, no model calls, no stream).
+function sotaTrackerCard() {
+  return {
+    identity: {
+      agentName: 'sota_tracker',
+      displayName: 'SOTA Tracker — Benchmark Leaderboard',
+      description:
+        'Benchmark leaderboard agent: answers state-of-the-art questions ("what\u2019s the SOTA on BCI IV-2a?") ' +
+        'with ranked, self-reported results seeded from the corpus abstracts. LLM-free — pure retrieval from ' +
+        'data/benchmarks.json, so every call is instant and nearly free.',
+      version: '1.0.0',
+      provider: { organization: 'Brain Citation Star Map' },
+    },
+    capabilities: { taskKinds: ['request'] },
+    io: {
+      inputs: [{
+        id: 'question',
+        description: 'A SOTA / leaderboard question, e.g. "What is the state of the art on BCI IV-2a?" or "all benchmarks"',
+        contentType: 'text/plain',
+        required: true,
+        example: 'Best accuracy on BCI IV-2a',
+      }],
+      outputs: [
+        {
+          id: 'answer',
+          description: 'Ranked leaderboard answer (self-reported numbers from corpus abstracts)',
+          contentType: 'text/plain',
+          guaranteed: true,
+          schema: { type: 'string' },
+        },
+        {
+          id: 'sources',
+          description: 'Cited papers behind the leaderboard entries as structured JSON (title, year, arXiv URL)',
+          contentType: 'application/json',
+          guaranteed: false,
+          schema: {
+            type: 'array',
+            items: { type: 'object', properties: { title: { type: 'string' }, year: { type: 'number' }, url: { type: 'string' } } },
+          },
+        },
+      ],
+    },
+    // No streams block — LLM-free instant answers, same as star_map_demo.
+    tags: [
+      ...COMMON_TAGS,
+      {
+        id: 'benchmark-leaderboard',
+        name: 'Benchmark Leaderboard',
+        description: 'State-of-the-art answers per dataset, seeded from corpus abstracts',
+        examples: ['What is the SOTA on BCI IV-2a?', 'Show all benchmarks'],
+      },
+    ],
+    runtime: RUNTIME,
+  }
+}
+
 function routerCard() {
   return card({
     agentName: 'router',
@@ -321,7 +378,7 @@ function main() {
     process.exit(1)
   }
 
-  const cards = [starMapDemoCard(), paperFeedCard(), routerCard(), orchestratorCard(), ...roster.map(expertCard)]
+  const cards = [starMapDemoCard(), sotaTrackerCard(), paperFeedCard(), routerCard(), orchestratorCard(), ...roster.map(expertCard)]
   const wanted = new Set(cards.map(c => c.identity.agentName))
 
   fs.mkdirSync(AGENTS_DIR, { recursive: true })

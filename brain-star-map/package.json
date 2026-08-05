@@ -24,6 +24,8 @@
     "blocks:pipe:call": "node scripts/call-pipe-agent.mjs",
     "blocks:pipe:test": "node blocks/test-pipe.mjs",
     "blocks:demo:test": "node blocks/test-demo.mjs",
+    "blocks:sota:build": "node scripts/build-benchmarks.js",
+    "blocks:sota:test": "node blocks/test-sota.mjs",
     "blocks:demo:call": "node scripts/call-blocks-agent.mjs star_map_demo"
   },
   "dependencies": {

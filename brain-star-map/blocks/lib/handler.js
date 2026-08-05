@@ -28,6 +28,7 @@ import {
 import { runOrchestrator } from './a2a.js'
 import { runPaperFeed } from './pipe.js'
 import { runStarMapDemo } from './demo.js'
+import { runSotaTracker } from './sota.js'
 
 export default async function handler(task, ctx) {
   const agentName = task?.agentName || process.env.BLOCKS_AGENT_NAME || 'router'
@@ -47,6 +48,12 @@ export default async function handler(task, ctx) {
   // it doesn't use the token stream, so handle it before stream setup.
   if (agentName === 'star_map_demo') {
     return runStarMapDemo(task, ctx)
+  }
+
+  // Benchmark leaderboard agent — LLM-free SOTA answers from the corpus seed
+  // table (data/benchmarks.json). Same input contract, no token stream.
+  if (agentName === 'sota_tracker') {
+    return runSotaTracker(task, ctx)
   }
 
   // Validate the input contract up front — a bad task fails fast (failed state)

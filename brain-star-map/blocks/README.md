@@ -10,12 +10,15 @@ blocks/
 │   ├── handler.js        # the Blocks handler (default export) — shared by every agent
 │   ├── engine.js         # pipeline: requestParts, streaming, expert + router execution
 │   ├── a2a.js            # agent-to-agent: sub-task calls, parallel fan-out, merge
-│   └── pipe.js           # pipe-streaming: paper_feed long-lived event session
+│   ├── pipe.js           # pipe-streaming: paper_feed long-lived event session
+│   ├── demo.js           # star_map_demo: LLM-free corpus answers + demo.html artifact
+│   └── sota.js           # sota_tracker: LLM-free benchmark leaderboard answers
 ├── agents/
 │   ├── router/                   agent-card.json  — cross-topic coordinator
 │   ├── orchestrator/             agent-card.json  — A2A fan-out over the network (generated)
 │   ├── paper_feed/               agent-card.json  — pipe agent: live corpus event stream (generated)
 │   ├── star_map_demo/            agent-card.json  — FREE demo agent: LLM-free answers + demo.html artifact (generated)
+│   ├── sota_tracker/             agent-card.json  — benchmark leaderboard agent: LLM-free SOTA answers (generated)
 │   ├── expert_bci_eeg/           agent-card.json  — BCI & EEG Expert
 │   ├── expert_neural_decoding/   agent-card.json  — Neural Decoding Expert
 │   ├── expert_connectomics/      agent-card.json  — Connectomics Expert
@@ -28,7 +31,11 @@ blocks/
 │   └── my_orchestrator/   agent-card.json + handler.js + trigger.mjs — calls echo + adder
 ├── test-local.mjs       # offline handler test harness (no network needed)
 ├── test-a2a.mjs         # offline A2A contract harness (mocked taskClient)
-└── test-pipe.mjs        # offline pipe-streaming contract harness (mocked ctx)
+├── test-pipe.mjs        # offline pipe-streaming contract harness (mocked ctx)
+├── test-demo.mjs        # offline star_map_demo contract harness
+└── test-sota.mjs        # offline sota_tracker contract harness
+
+data/benchmarks.json            # benchmark leaderboard seed (regenerate: npm run blocks:sota:build)
 
 ui/                          # deployable webapp for all agents (see below)
 └── web/{index.html,app.js,styles.css} + blocks.config.json
@@ -42,7 +49,7 @@ match the actual database — the same data the web app visualizes.
 
 | Blocks concept | Implementation |
 |---|---|
-| **Agent** | 9 generated agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
+| **Agent** | 10 generated agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
 | **Agent card** | `agent-card.json` per agent — identity, capabilities, io, streams, tags, runtime (see below). |
 | **Task (request)** | Each card declares `capabilities.taskKinds: ["request"]` — single question in, answer out. |
 | **requestParts / partId** | Input declared as `io.inputs[].id = "question"`. Callers send `requestParts: [{ partId: "question", text: "…" }]`. A missing/mismatched part fails the task fast (`failed` state). |
@@ -396,8 +403,8 @@ node scripts/remove-blocks-agent.mjs <agentName>   # SDK removeAgent()
 
 ### Invites vs. the live agents
 
-All 13 live agents (router, orchestrator, all six experts, `paper_feed`,
-`star_map_demo`, demo trio) are **public** — public agents need no invites;
+All 14 live agents (router, orchestrator, all six experts, `paper_feed`,
+`star_map_demo`, `sota_tracker`, demo trio) are **public** — public agents need no invites;
 any authenticated caller can use them. To gate one behind this invite flow,
 flip it private: `blocks publish --listing private --billing-mode paid`.
 
@@ -463,13 +470,42 @@ npm run blocks:demo:test              # offline contract harness (mocked ctx)
 npm run blocks:demo:call -- star_map_demo "List papers about EEG motor imagery"
 ```
 
-It is the only **free** agent on the network (all others are $0.02 paid) —
-anonymous users can try it from the browser up to the anonymous quota.
+It is one of two **free** agents on the network (`sota_tracker` is paid;
+`star_map_demo` is the only free one) — anonymous users can try it from the
+browser up to the anonymous quota.
+
+## sota_tracker — benchmark leaderboard agent (live)
+
+`sota_tracker` answers state-of-the-art / leaderboard questions —
+"best accuracy on BCI IV-2a?", "show all benchmarks" — with a ranked table
+seeded from the corpus abstracts (`data/benchmarks.json`, 12 datasets, 12
+self-reported claims). Like `star_map_demo` it is deliberately **LLM-free**
+(pure retrieval, zero model calls) and reads the seed table fresh from disk on
+every call.
+
+```text
+> What is the state of the art on BCI IV-2a?
+answer: Benchmark leaderboard (seeded from corpus abstracts — self-reported numbers, not independently verified):
+  #1  95.4%  DRDCAE-STGNN: An End-to-End Discriminative Autoencoder with Spatio-Temporal Graph Learning (2025)
+  #2  86.6%  GCMCG: A Clustering-Aware Graph Attention and Expert Fusion Network (2025)
+sources: sources.json (cited papers behind each entry)
+```
+
+Every answer carries the honesty guardrail that numbers are **self-reported**
+from abstracts — it never claims an entry is independently verified global
+SOTA. Regenerate / curate the seed table without touching the handler:
+
+```bash
+npm run blocks:sota:build     # rescan corpus abstracts -> data/benchmarks.json
+npm run blocks:sota:test      # offline contract harness
+npm run blocks:call -- sota_tracker "What is the SOTA on BCI IV-2a?"
+```
 
 ## Pricing — live agents are paid ($0.02)
 
-All 8 agents are published **public + paid** on the real network at a flat,
-fair **$0.02** (per task for request agents; per minute for `paper_feed`), with
+All 9 paid agents (router, orchestrator, six experts, `sota_tracker`) are
+published **public + paid** on the real network at a flat, fair **$0.02** (per
+task for request agents; per minute for `paper_feed`), with
 **3 free trial tasks** (or minutes) per consumer organization so anyone can
 still try before paying. You keep 85%, Blocks takes 15% (Stripe).
 
@@ -487,10 +523,11 @@ agents are charged automatically from the caller's balance. The demo trio
 
 ## Web UI — deployable research console (`ui/`)
 
-`ui/` is a static webapp scaffolded with `blocks init --mode webapp` for all 9
+`ui/` is a static webapp scaffolded with `blocks init --mode webapp` for 13
 published agents (router, orchestrator, all six experts, `paper_feed`,
 `star_map_demo`, and the three A2A demo agents) and then customized into a
-star-map themed research console.
+star-map themed research console. (`sota_tracker` is not wired into the console
+yet — add it to the `AGENTS` table + sign-in lists to surface it there.)
 
 - **Live**: deployed to Cloudflare Pages at https://ui-c7w.pages.dev —
   visitors sign in with a Blocks account and the console calls the agents.
