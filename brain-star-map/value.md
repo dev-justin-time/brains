@@ -11,10 +11,10 @@
 | Asset | Detail |
 |---|---|
 | Corpus | 215 arXiv papers, 700 keyword-co-occurrence links, 6 communities (Neural Decoding, BCI & EEG, Deep Learning, Connectomics, Clinical Apps, Other) |
-| Live agents (15) | `router`, `orchestrator`, six experts (connectomics, bci_eeg, deep_learning, neural_decoding, clinical_apps, other), `paper_feed` (pipe, $0.02/min), `star_map_demo` (free), `sota_tracker` (benchmark leaderboard), `lit_review` ($0.10/task), A2A trio `my_echo`/`my_adder`/`my_orchestrator` |
+| Live agents (18) | `router`, `orchestrator`, six experts, `paper_feed` (pipe, $0.02/min), `star_map_demo` (free), `sota_tracker`, `lit_review` ($0.10), `graph_explorer`, `clinical_translator`, `grant_writer` ($0.10), A2A trio `my_echo`/`my_adder`/`my_orchestrator` |
 | Dormant cards (4) | `expert_clinical_apps`, `expert_deep_learning`, `expert_neural_decoding`, `expert_other` — generated, never published |
 | Engine | `server/` hybrid retrieval + local Ollama → **near-zero marginal cost**, LLM-free fast paths |
-| Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 10 paid agents (9 @ $0.02/task, `lit_review` @ $0.10/task) (85/15 split) |
+| Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 13 paid agents (11 @ $0.02/task, `lit_review` + `grant_writer` @ $0.10/task) (85/15 split) |
 
 The unit economics are already good (≈100% margin). Growth = more users, and
 users come from **capability breadth** (more agents/data) and **discovery**
@@ -53,13 +53,18 @@ users come from **capability breadth** (more agents/data) and **discovery**
    outlines, cite the paper.
 
 ### P2 — differentiators (marketing magnets)
-8. **`graph_explorer`** — the star-map as an agent: "most central papers in
-   connectomics?" → subgraph + centrality answers. *Why:* the visualization is
-   our unique asset; an agent that *reasons over the graph* is novel on Blocks.
-9. **`clinical_translator`** — paper findings → plain-language clinical practice
-   notes (stroke rehab, CP, neurofeedback). Unlocks non-researcher users.
-10. **`grant_writer`** — research-idea → draft proposal background + related work
-    with citations. *Needs:* funding/grant text corpus.
+8. **`graph_explorer`** — ✅ **done 2026-08-05**: the star-map as an agent.
+   LLM-free graph reasoning over `public/graph_data.json` — centrality per
+   topic, 1-hop subgraphs (+ `subgraph.json` artifact), communities, bridges
+   (betweenness), shortest paths. Live @ $0.02.
+9. **`clinical_translator`** — ✅ **done 2026-08-05**: paper findings →
+   plain-language clinical practice notes (stroke rehab, CP, neurofeedback),
+   clinical-keyword-ranked retrieval + LLM synthesis. Live @ $0.02.
+10. **`grant_writer`** — ✅ **done 2026-08-05**: research idea → proposal draft
+    (TITLE / BACKGROUND / RELATED WORK / PROPOSED CONTRIBUTION / RISKS) with
+    citations via lit_review's multi-hop retrieval. Live @ $0.10. *(The
+    roadmap's funding/grant text corpus is not bundled — drafts are generated
+    from the real papers corpus, the honest scope.)*
 
 ---
 
@@ -125,11 +130,13 @@ users come from **capability breadth** (more agents/data) and **discovery**
 | 4 | Topic subscriptions on `paper_feed` | 1–2 days | High | recurring (pipe) |
 | 5 | Real citation graph | 2–4 days | Medium-High | unlocks 2 agents |
 | 6 | Shareable briefs + exports in UI | 1–2 days | Medium | acquisition |
-| 7 | `graph_explorer`, `clinical_translator` | 3–5 days | Medium | differentiation |
+| 7 | `graph_explorer`, `clinical_translator` | ✅ done 2026-08-05 | — | differentiation |
 
-**All P0 items done.** Next: #4 topic subscriptions on `paper_feed` (recurring
-pipe revenue), or wire `sota_tracker` + `lit_review` into the web console so
-the benchmark + review features are visible in the UI.
+**All P0 + P2 differentiators done.** Next: #4 topic subscriptions on
+`paper_feed` (recurring pipe revenue), or wire the new agents (`sota_tracker`,
+`lit_review`, `graph_explorer`, `clinical_translator`, `grant_writer`) into the
+web console so the benchmark / review / graph / clinical / grant features are
+visible in the UI.
 
 ---
 

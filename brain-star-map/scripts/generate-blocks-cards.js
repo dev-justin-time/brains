@@ -306,6 +306,123 @@ function litReviewCard() {
   })
 }
 
+// graph_explorer — LLM-free graph reasoning over the star-map (like the demo
+// and sota_tracker: reads public/graph_data.json, no model calls, no stream).
+function graphExplorerCard() {
+  return {
+    identity: {
+      agentName: 'graph_explorer',
+      displayName: 'Graph Explorer — Star-Map Reasoning',
+      description:
+        'Reasons directly over the citation star-map graph (215 papers, 700 keyword-co-occurrence edges): ' +
+        'most central papers per topic, 1-hop subgraphs around a paper, community overview, bridge papers ' +
+        '(betweenness), and shortest paths between papers. LLM-free — pure graph computation, instant and ' +
+        'near-free. Returns a subgraph.json artifact when a subgraph or path is requested.',
+      version: '1.0.0',
+      provider: { organization: 'Brain Citation Star Map' },
+    },
+    capabilities: { taskKinds: ['request'] },
+    io: {
+      inputs: [{
+        id: 'question',
+        description: 'A graph question: "most central papers in Connectomics", "subgraph around <paper>", "shortest path between <A> and <B>", "bridge papers", "communities"',
+        contentType: 'text/plain',
+        required: true,
+        example: 'Most central papers in Connectomics',
+      }],
+      outputs: [
+        {
+          id: 'answer',
+          description: 'Graph answer (rankings, subgraphs, paths) computed from the star-map',
+          contentType: 'text/plain',
+          guaranteed: true,
+          schema: { type: 'string' },
+        },
+        {
+          id: 'subgraph',
+          description: 'Requested subgraph / path as graph_data.json-shaped JSON (nodes + links), ready to visualize',
+          contentType: 'application/json',
+          guaranteed: false,
+          schema: { type: 'object' },
+        },
+        {
+          id: 'sources',
+          description: 'Papers involved in the answer as structured JSON (title, year, arXiv URL)',
+          contentType: 'application/json',
+          guaranteed: false,
+          schema: {
+            type: 'array',
+            items: { type: 'object', properties: { title: { type: 'string' }, year: { type: 'number' }, url: { type: 'string' } } },
+          },
+        },
+      ],
+    },
+    // No streams block — LLM-free instant answers, same as star_map_demo / sota_tracker.
+    tags: [
+      ...COMMON_TAGS,
+      {
+        id: 'graph-explorer',
+        name: 'Star-Map Graph Reasoning',
+        description: 'Centrality, subgraphs, communities, bridges and paths over the visualization graph',
+        examples: ['Most central papers in Connectomics', 'Shortest path between two papers'],
+      },
+    ],
+    runtime: RUNTIME,
+  }
+}
+
+// clinical_translator — LLM plain-language clinical practice notes (streams).
+function clinicalTranslatorCard() {
+  return card({
+    agentName: 'clinical_translator',
+    displayName: 'Clinical Translator — Plain-Language Practice Notes',
+    description:
+      'Turns research findings into plain-language clinical practice notes for stroke rehabilitation, cerebral ' +
+      'palsy, neurofeedback, prosthetics and therapy applications. Four sections: PLAIN-LANGUAGE SUMMARY, ' +
+      'WHAT THIS MEANS FOR CLINICIANS, KEY NUMBERS, CAVEATS & LIMITATIONS — with [n] citations. Written for ' +
+      'clinicians and practitioners, not ML researchers.',
+    tags: [
+      {
+        id: 'clinical-translation',
+        name: 'Clinical Translation',
+        description: 'Research findings -> actionable plain-language practice notes',
+        examples: ['What does the latest EEG research mean for stroke rehabilitation?', 'Is neurofeedback ready for clinical use in children with cerebral palsy?'],
+      },
+    ],
+  })
+}
+
+// grant_writer — LLM proposal draft (background + related work + citations).
+function grantWriterCard() {
+  return card({
+    agentName: 'grant_writer',
+    displayName: 'Grant Writer — Proposal Draft',
+    description:
+      'Drafts the front matter of a research grant proposal from a research idea: TITLE, BACKGROUND, RELATED WORK ' +
+      '(with [n] citations from the corpus via multi-hop retrieval), PROPOSED CONTRIBUTION, and RISKS & OPEN ' +
+      'QUESTIONS. Returns a structured draft.json artifact. Premium-priced ($0.10) for the multi-hop research + ' +
+      'synthesis work.',
+    ioExtra: {
+      inputs: [QUESTION_INPUT],
+      outputs: [...OUTPUTS, {
+        id: 'draft',
+        description: 'Structured draft as JSON: idea, cited papers, and parsed sections (title + body per section)',
+        contentType: 'application/json',
+        guaranteed: false,
+        schema: { type: 'object' },
+      }],
+    },
+    tags: [
+      {
+        id: 'grant-writing',
+        name: 'Grant Proposal Drafting',
+        description: 'Research idea -> proposal background + related work with citations',
+        examples: ['Draft a proposal on combining foundation models with Riemannian EEG decoding'],
+      },
+    ],
+  })
+}
+
 // sota_tracker — benchmark leaderboard agent, LLM-free like the demo (reads
 // data/benchmarks.json, no model calls, no stream).
 function sotaTrackerCard() {
@@ -422,7 +539,18 @@ function main() {
     process.exit(1)
   }
 
-  const cards = [starMapDemoCard(), sotaTrackerCard(), litReviewCard(), paperFeedCard(), routerCard(), orchestratorCard(), ...roster.map(expertCard)]
+  const cards = [
+    starMapDemoCard(),
+    sotaTrackerCard(),
+    graphExplorerCard(),
+    litReviewCard(),
+    clinicalTranslatorCard(),
+    grantWriterCard(),
+    paperFeedCard(),
+    routerCard(),
+    orchestratorCard(),
+    ...roster.map(expertCard),
+  ]
   const wanted = new Set(cards.map(c => c.identity.agentName))
 
   fs.mkdirSync(AGENTS_DIR, { recursive: true })

@@ -1,0 +1,105 @@
+{
+  "identity": {
+    "agentName": "grant_writer",
+    "displayName": "Grant Writer — Proposal Draft",
+    "description": "Drafts the front matter of a research grant proposal from a research idea: TITLE, BACKGROUND, RELATED WORK (with [n] citations from the corpus via multi-hop retrieval), PROPOSED CONTRIBUTION, and RISKS & OPEN QUESTIONS. Returns a structured draft.json artifact. Premium-priced ($0.10) for the multi-hop research + synthesis work.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "A research question about the brain-technology corpus (citations returned as [n])",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "What are the best EEG motor-imagery decoding methods?"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "The agent’s answer, citing corpus papers as [n]",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "Cited papers as structured JSON (title, year, arXiv URL)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "year": {
+                "type": "number"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "draft",
+        "description": "Structured draft as JSON: idea, cited papers, and parsed sections (title + body per section)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "object"
+        }
+      }
+    ]
+  },
+  "streams": {
+    "_default": {
+      "direction": "outbound",
+      "format": "bytes",
+      "description": "Answer text streamed token-by-token as it is generated",
+      "contentType": "text/plain"
+    }
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "grant-writing",
+      "name": "Grant Proposal Drafting",
+      "description": "Research idea -> proposal background + related work with citations",
+      "examples": [
+        "Draft a proposal on combining foundation models with Riemannian EEG decoding"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

@@ -28,6 +28,9 @@
     "blocks:sota:test": "node blocks/test-sota.mjs",
     "blocks:litreview:test": "node blocks/test-litreview.mjs",
     "blocks:litreview:call": "node scripts/call-blocks-agent.mjs lit_review",
+    "blocks:graph:test": "node blocks/test-graphexplorer.mjs",
+    "blocks:clinical:test": "node blocks/test-clinical.mjs",
+    "blocks:grant:test": "node blocks/test-grantwriter.mjs",
     "blocks:demo:call": "node scripts/call-blocks-agent.mjs star_map_demo"
   },
   "dependencies": {

@@ -1,0 +1,98 @@
+{
+  "identity": {
+    "agentName": "graph_explorer",
+    "displayName": "Graph Explorer — Star-Map Reasoning",
+    "description": "Reasons directly over the citation star-map graph (215 papers, 700 keyword-co-occurrence edges): most central papers per topic, 1-hop subgraphs around a paper, community overview, bridge papers (betweenness), and shortest paths between papers. LLM-free — pure graph computation, instant and near-free. Returns a subgraph.json artifact when a subgraph or path is requested.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "A graph question: \"most central papers in Connectomics\", \"subgraph around <paper>\", \"shortest path between <A> and <B>\", \"bridge papers\", \"communities\"",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "Most central papers in Connectomics"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "Graph answer (rankings, subgraphs, paths) computed from the star-map",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "subgraph",
+        "description": "Requested subgraph / path as graph_data.json-shaped JSON (nodes + links), ready to visualize",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "Papers involved in the answer as structured JSON (title, year, arXiv URL)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "year": {
+                "type": "number"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "graph-explorer",
+      "name": "Star-Map Graph Reasoning",
+      "description": "Centrality, subgraphs, communities, bridges and paths over the visualization graph",
+      "examples": [
+        "Most central papers in Connectomics",
+        "Shortest path between two papers"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

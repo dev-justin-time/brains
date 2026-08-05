@@ -30,6 +30,9 @@ import { runPaperFeed } from './pipe.js'
 import { runStarMapDemo } from './demo.js'
 import { runSotaTracker } from './sota.js'
 import { runLitReview } from './litreview.js'
+import { runGraphExplorer } from './graphexplorer.js'
+import { runClinicalTranslator } from './clinical.js'
+import { runGrantWriter } from './grantwriter.js'
 
 export default async function handler(task, ctx) {
   const agentName = task?.agentName || process.env.BLOCKS_AGENT_NAME || 'router'
@@ -55,6 +58,12 @@ export default async function handler(task, ctx) {
   // table (data/benchmarks.json). Same input contract, no token stream.
   if (agentName === 'sota_tracker') {
     return runSotaTracker(task, ctx)
+  }
+
+  // Graph agent — LLM-free graph reasoning over the star-map (centrality,
+  // subgraph, communities, shortest paths). Same contract, no stream.
+  if (agentName === 'graph_explorer') {
+    return runGraphExplorer(task, ctx)
   }
 
   // Validate the input contract up front — a bad task fails fast (failed state)
@@ -100,6 +109,12 @@ export default async function handler(task, ctx) {
     } else if (agentName === 'lit_review') {
       ctx?.reportStatus(`Preparing a structured literature review for "${question.slice(0, 80)}"…`)
       result = await runLitReview(task, ctx, emit)
+    } else if (agentName === 'clinical_translator') {
+      ctx?.reportStatus(`Translating research into clinical practice notes for "${question.slice(0, 80)}"…`)
+      result = await runClinicalTranslator(task, ctx, emit)
+    } else if (agentName === 'grant_writer') {
+      ctx?.reportStatus(`Drafting a proposal for "${question.slice(0, 80)}"…`)
+      result = await runGrantWriter(task, ctx, emit)
     } else {
       const agent = resolveAgent(agentName)
       result = await runExpert(agent, task, ctx, emit)
@@ -131,6 +146,14 @@ export default async function handler(task, ctx) {
         mimeType: 'application/json',
         outputId: 'review',
         fileName: 'review.json',
+      })
+    }
+    if (result.draft) {
+      artifacts.push({
+        data: JSON.stringify(result.draft, null, 2),
+        mimeType: 'application/json',
+        outputId: 'draft',
+        fileName: 'draft.json',
       })
     }
     return { artifacts }

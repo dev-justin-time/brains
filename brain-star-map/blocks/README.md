@@ -13,7 +13,10 @@ blocks/
 │   ├── pipe.js           # pipe-streaming: paper_feed long-lived event session
 │   ├── demo.js           # star_map_demo: LLM-free corpus answers + demo.html artifact
 │   ├── sota.js           # sota_tracker: LLM-free benchmark leaderboard answers
-│   └── litreview.js      # lit_review: multi-hop structured literature review
+│   ├── litreview.js      # lit_review: multi-hop structured literature review
+│   ├── graphexplorer.js  # graph_explorer: LLM-free star-map graph reasoning
+│   ├── clinical.js       # clinical_translator: plain-language practice notes
+│   └── grantwriter.js    # grant_writer: proposal draft (background + related work)
 ├── agents/
 │   ├── router/                   agent-card.json  — cross-topic coordinator
 │   ├── orchestrator/             agent-card.json  — A2A fan-out over the network (generated)
@@ -21,6 +24,9 @@ blocks/
 │   ├── star_map_demo/            agent-card.json  — FREE demo agent: LLM-free answers + demo.html artifact (generated)
 │   ├── sota_tracker/             agent-card.json  — benchmark leaderboard agent: LLM-free SOTA answers (generated)
 │   ├── lit_review/               agent-card.json  — structured literature review agent (generated)
+│   ├── graph_explorer/           agent-card.json  — star-map graph reasoning agent (generated)
+│   ├── clinical_translator/      agent-card.json  — plain-language practice notes (generated)
+│   └── grant_writer/             agent-card.json  — grant proposal drafting (generated)
 │   ├── expert_bci_eeg/           agent-card.json  — BCI & EEG Expert
 │   ├── expert_neural_decoding/   agent-card.json  — Neural Decoding Expert
 │   ├── expert_connectomics/      agent-card.json  — Connectomics Expert
@@ -36,7 +42,10 @@ blocks/
 ├── test-pipe.mjs        # offline pipe-streaming contract harness (mocked ctx)
 ├── test-demo.mjs        # offline star_map_demo contract harness
 ├── test-sota.mjs        # offline sota_tracker contract harness
-└── test-litreview.mjs   # offline lit_review contract harness (retrieval fallback path)
+├── test-litreview.mjs   # offline lit_review contract harness (retrieval fallback path)
+├── test-graphexplorer.mjs  # offline graph_explorer contract harness (pure graph math)
+├── test-clinical.mjs    # offline clinical_translator contract harness (retrieval path)
+└── test-grantwriter.mjs # offline grant_writer contract harness (retrieval path)
 
 data/benchmarks.json            # benchmark leaderboard seed (regenerate: npm run blocks:sota:build)
 
@@ -52,7 +61,7 @@ match the actual database — the same data the web app visualizes.
 
 | Blocks concept | Implementation |
 |---|---|
-| **Agent** | 11 generated agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`) + 1 structured literature review (`lit_review`), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
+| **Agent** | 14 generated agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`) + 1 structured literature review (`lit_review`) + 1 graph reasoning (`graph_explorer`) + 1 clinical translator + 1 grant writer, plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
 | **Agent card** | `agent-card.json` per agent — identity, capabilities, io, streams, tags, runtime (see below). |
 | **Task (request)** | Each card declares `capabilities.taskKinds: ["request"]` — single question in, answer out. |
 | **requestParts / partId** | Input declared as `io.inputs[].id = "question"`. Callers send `requestParts: [{ partId: "question", text: "…" }]`. A missing/mismatched part fails the task fast (`failed` state). |
@@ -406,8 +415,9 @@ node scripts/remove-blocks-agent.mjs <agentName>   # SDK removeAgent()
 
 ### Invites vs. the live agents
 
-All 15 live agents (router, orchestrator, all six experts, `paper_feed`,
-`star_map_demo`, `sota_tracker`, `lit_review`, demo trio) are **public** — public agents need no invites;
+All 18 live agents (router, orchestrator, all six experts, `paper_feed`,
+`star_map_demo`, `sota_tracker`, `lit_review`, `graph_explorer`,
+`clinical_translator`, `grant_writer`, demo trio) are **public** — public agents need no invites;
 any authenticated caller can use them. To gate one behind this invite flow,
 flip it private: `blocks publish --listing private --billing-mode paid`.
 
@@ -504,6 +514,55 @@ npm run blocks:sota:test      # offline contract harness
 npm run blocks:call -- sota_tracker "What is the SOTA on BCI IV-2a?"
 ```
 
+## graph_explorer — the star-map as an agent (live)
+
+`graph_explorer` reasons directly over the citation star-map graph
+(`public/graph_data.json` — the same data the 3D visualization renders): 215
+papers, 700 keyword-co-occurrence edges. Deliberately **LLM-free** (pure graph
+computation), it answers:
+
+- **Centrality** — "most central papers in Connectomics" → ranked by neighbor
+  count, optionally filtered to a community/topic
+- **Subgraphs** — "subgraph around <paper>" → 1-hop neighborhood + a
+  `subgraph.json` artifact (graph_data.json-shaped, ready to visualize)
+- **Communities** — corpus landscape by community size
+- **Bridges** — top betweenness-centrality papers (Brandes algorithm)
+- **Shortest paths** — "shortest path between <A> and <B>" → BFS path + subgraph
+
+```bash
+npm run blocks:graph:test     # offline contract harness (pure graph math)
+npm run blocks:call -- graph_explorer "Most central papers in Connectomics"
+npm run blocks:call -- graph_explorer "subgraph around Artemis"
+```
+
+## clinical_translator — plain-language practice notes (live)
+
+`clinical_translator` turns research findings into practice notes written for
+clinicians, not ML researchers: **PLAIN-LANGUAGE SUMMARY / WHAT THIS MEANS FOR
+CLINICIANS / KEY NUMBERS / CAVEATS & LIMITATIONS**, with [n] citations.
+Retrieval ranks clinically-relevant papers (stroke, CP, neurofeedback,
+prosthetics, therapy keywords) to the top even for technical questions.
+
+```bash
+npm run blocks:clinical:test
+npm run blocks:call -- clinical_translator "What does recent EEG research mean for stroke rehabilitation?"
+```
+
+## grant_writer — proposal draft (live)
+
+`grant_writer` drafts the front matter of a research proposal from an idea:
+**TITLE / BACKGROUND / RELATED WORK / PROPOSED CONTRIBUTION / RISKS & OPEN
+QUESTIONS** with [n] citations, reusing lit_review's multi-hop retrieval so
+related work spans the whole corpus + top-2 topics. Returns a structured
+`draft.json` artifact. (The roadmap's "funding/grant text corpus" is not
+bundled — the draft is generated from the real papers corpus + templated
+structure, which is the honest scope without scraping external grant text.)
+
+```bash
+npm run blocks:grant:test
+npm run blocks:call -- grant_writer "Combine foundation models with Riemannian decoding for cross-subject EEG"
+```
+
 ## lit_review — multi-hop structured literature review (live)
 
 `lit_review` is the multi-hop agent: instead of answering from one topic
@@ -532,10 +591,11 @@ npm run blocks:litreview:call -- "<review question>"   # live
 
 ## Pricing — live agents are paid ($0.02/$0.10)
 
-10 paid agents are published **public + paid** on the real network: nine
-(router, orchestrator, six experts, `sota_tracker`) at a flat **$0.02** per
-task, and `lit_review` at **$0.10/task** (multi-hop structured review work);
-`paper_feed` is $0.02/minute. All carry
+13 paid agents are published **public + paid** on the real network: eleven
+(router, orchestrator, six experts, `sota_tracker`, `graph_explorer`,
+`clinical_translator`) at a flat **$0.02** per task, and two premium agents —
+`lit_review` and `grant_writer` — at **$0.10/task** (multi-hop research +
+synthesis work); `paper_feed` is $0.02/minute. All carry
 **3 free trial tasks** (or minutes) per consumer organization so anyone can
 still try before paying. You keep 85%, Blocks takes 15% (Stripe).
 
