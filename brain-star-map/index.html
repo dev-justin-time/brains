@@ -11,9 +11,504 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
     </style>
+    <script type="module" crossorigin src="./assets/index-CuOS0S46.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Djfh9QB5.css">
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
   </body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Citation Star Map — Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #020205; color: #e2e8f0; overflow: hidden; }
+  #root { width: 100vw; height: 100vh; position: relative; }
+  .canvas-wrap { width: 100vw; height: 100vh; position: fixed; inset: 0; z-index: 1; }
+  .ui-layer { position: fixed; z-index: 10; pointer-events: none; width: 100%; height: 100%; inset: 0; }
+  .ui-layer > * { pointer-events: auto; }
+  .header { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); text-align: center; opacity: 0.9; }
+  .header h1 { font-size: 16px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #f8fafc; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+  .header p { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+  .download-btn { position: absolute; top: 18px; left: 18px; background: rgba(15,23,42,0.7); border: 1px solid rgba(148,163,184,0.2); color: #e2e8f0; padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+  .download-btn:hover { background: rgba(30,41,59,0.9); border-color: rgba(148,163,184,0.4); }
+  .back-link { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #64748b; background: rgba(2,2,5,0.7); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(6px); text-decoration: none; transition: all 0.2s; white-space: nowrap; }
+  .back-link:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.18); }
+  .legend { position: absolute; left: 18px; bottom: 18px; background: rgba(2,2,5,0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; backdrop-filter: blur(10px); max-width: 220px; }
+  .legend-title { font-size: 11px; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+  .legend-item:hover { background: rgba(255,255,255,0.06); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+  .legend-label { font-size: 12px; color: #cbd5e1; }
+  .detail-card { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); width: 380px; max-height: 78vh; background: rgba(2,2,5,0.85); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); transition: opacity 0.3s, transform 0.3s; }
+  .detail-card.hidden { opacity: 0; pointer-events: none; transform: translateY(-50%) translateX(20px); }
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .detail-title { font-size: 15px; font-weight: 600; line-height: 1.35; color: #f8fafc; }
+  .detail-close { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px; }
+  .detail-close:hover { color: #f8fafc; }
+  .detail-meta { font-size: 12px; color: #94a3b8; display: flex; gap: 10px; flex-wrap: wrap; }
+  .detail-meta span { background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 6px; }
+  .detail-abstract { font-size: 13px; line-height: 1.6; color: #cbd5e1; max-height: 34vh; overflow-y: auto; padding-right: 6px; }
+  .detail-abstract::-webkit-scrollbar { width: 6px; }
+  .detail-abstract::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+  .detail-keywords { display: flex; flex-wrap: wrap; gap: 6px; }
+  .detail-keywords span { font-size: 11px; color: #e2e8f0; background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); }
+  .detail-link { display: inline-flex; align-items: center; gap: 6px; background: #0f52ba; color: white; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; width: fit-content; margin-top: 4px; transition: background 0.2s; }
+  .detail-link:hover { background: #1d4ed8; }
+  .badge { position: absolute; bottom: 18px; right: 18px; font-size: 10px; color: #64748b; background: rgba(2,2,5,0.7); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(6px); }
+  .loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #020205; z-index: 50; transition: opacity 0.6s; }
+  .loading.done { opacity: 0; pointer-events: none; }
+  .loading-text { color: #94a3b8; font-size: 13px; letter-spacing: 0.1em; animation: pulse 1.5s infinite; }
+  .loading-error { color: #f87171; font-size: 12px; letter-spacing: 0.04em; text-align: center; max-width: 480px; line-height: 1.7; padding: 0 24px; }
+  .loading-error code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+  @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+</style>
+</head>
+<body>
+<script>
+  // Visible fallback if the CDN modules (esm.sh) can't load — otherwise the
+  // module script would fail silently and leave a blank black page.
+  (function () {
+    var shown = false;
+    function show(msg) {
+      if (shown) return;
+      shown = true;
+      var root = document.getElementById('root');
+      if (!root || root.childElementCount > 0) return;
+      var div = document.createElement('div');
+      div.style.cssText = 'height:100vh;display:flex;align-items:center;justify-content:center;background:#020205;padding:24px;color:#f87171;font:13px Inter,system-ui,sans-serif;text-align:center;line-height:1.7';
+      div.innerHTML = '<div><div style="font-size:14px;font-weight:600;margin-bottom:8px;color:#f8fafc">Demo failed to start</div>' +
+        msg + '<br><span style="color:#64748b">This page loads React and three.js from the esm.sh CDN — check your network connection.</span></div>';
+      root.appendChild(div);
+    }
+    window.addEventListener('error', function (e) {
+      if (e && e.message && /module|import|esm\.sh|network/i.test(e.message)) show(e.message);
+    }, true);
+    setTimeout(function () {
+      var root = document.getElementById('root');
+      if (root && root.childElementCount === 0) show('Timed out waiting for the CDN modules to load.');
+    }, 15000);
+  })();
+</script>
+<div id="root"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "three": "https://esm.sh/three@0.160.0",
+    "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+  import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+  import ReactDOM from 'react-dom/client';
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+  import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+  import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+  // Load the live dataset (single source of truth) and normalize it into the
+  // shape this demo page expects: { nodes: [{ id, x, y, z, ... }], edges: [{ source, target, value }] }
+  async function loadGraphData() {
+    const res = await fetch('./graph_data.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const raw = await res.json();
+    const nodes = (raw.nodes || []).map(n => ({
+      ...n,
+      x: n.x ?? n.fx ?? 0,
+      y: n.y ?? n.fy ?? 0,
+      z: n.z ?? n.fz ?? 0,
+    }));
+    const edges = (raw.links || raw.edges || []).map(e => ({
+      source: typeof e.source === 'object' ? e.source.id : e.source,
+      target: typeof e.target === 'object' ? e.target.id : e.target,
+      value: e.value ?? 1,
+    }));
+    return { nodes, edges };
+  }
+
+  function getFirstAuthor(authors) {
+    if (typeof authors === 'string') return authors;
+    if (Array.isArray(authors)) return authors[0] || 'Unknown';
+    return 'Unknown';
+  }
+
+  class ErrorBoundary extends React.Component {
+    constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+    static getDerivedStateFromError(error) { return { hasError: true, error }; }
+    componentDidCatch(error, info) { console.error('ErrorBoundary caught:', error, info); }
+    render() {
+      if (this.state.hasError) {
+        return React.createElement('div', { style: { color: '#fff', padding: 40, textAlign: 'center' } },
+          React.createElement('h2', { style: { fontSize: 18, marginBottom: 10 } }, 'Star Map Error'),
+          React.createElement('p', { style: { fontSize: 13, color: '#94a3b8' } }, this.state.error && this.state.error.message)
+        );
+      }
+      return this.props.children;
+    }
+  }
+
+  function App({ data }) {
+    const canvasWrapRef = useRef(null);
+    const frameRef = useRef(null);
+    const nodeSpritesRef = useRef([]);
+    const edgeObjectsRef = useRef([]);
+    const raycasterRef = useRef(new THREE.Raycaster());
+    const mouseRef = useRef(new THREE.Vector2());
+    const entryProgress = useRef(0);
+    const [selectedNode, setSelectedNode] = useState(null);
+    const [highlightCommunity, setHighlightCommunity] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    const communities = useMemo(() => {
+      const map = new Map();
+      data.nodes.forEach(n => {
+        if (!map.has(n.community)) map.set(n.community, { label: n.community_label, color: n.color });
+      });
+      return Array.from(map.entries()).map(([id, v]) => ({ id, ...v })).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    }, [data]);
+
+    useEffect(() => {
+      const container = canvasWrapRef.current;
+      if (!container) return;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x020205);
+      scene.fog = new THREE.FogExp2(0x020205, 0.0015);
+
+      const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 2000);
+      camera.position.set(0, 0, 350);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ReinhardToneMapping;
+      container.appendChild(renderer.domElement);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.6;
+      controls.minDistance = 60;
+      controls.maxDistance = 700;
+      controls.enablePan = true;
+
+      const composer = new EffectComposer(renderer);
+      const renderPass = new RenderPass(scene, camera);
+      composer.addPass(renderPass);
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(container.clientWidth, container.clientHeight),
+        1.4, 0.5, 0.2
+      );
+      composer.addPass(bloomPass);
+
+      const starGeo = new THREE.BufferGeometry();
+      const starCount = 4000;
+      const starPos = new Float32Array(starCount * 3);
+      for (let i = 0; i < starCount * 3; i++) {
+        starPos[i] = (Math.random() - 0.5) * 900;
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      const starMat = new THREE.PointsMaterial({
+        color: 0xffffff, size: 1.0, transparent: true, opacity: 0.6,
+        blending: THREE.AdditiveBlending, sizeAttenuation: true, depthWrite: false
+      });
+      const stars = new THREE.Points(starGeo, starMat);
+      scene.add(stars);
+
+      const graphGroup = new THREE.Group();
+      scene.add(graphGroup);
+
+      const makeGlowTexture = () => {
+        const c = document.createElement('canvas');
+        c.width = 128; c.height = 128;
+        const ctx = c.getContext('2d');
+        const g = ctx.createRadialGradient(64,64,0, 64,64,64);
+        g.addColorStop(0, 'rgba(255,255,255,1)');
+        g.addColorStop(0.25, 'rgba(255,255,255,0.55)');
+        g.addColorStop(0.55, 'rgba(255,255,255,0.15)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0,0,128,128);
+        return new THREE.CanvasTexture(c);
+      };
+      const glowTexture = makeGlowTexture();
+
+      const nodeMap = new Map();
+      const nodeSprites = [];
+      data.nodes.forEach(n => {
+        const mat = new THREE.SpriteMaterial({
+          map: glowTexture,
+          color: new THREE.Color(n.color),
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          opacity: 0.92,
+          depthWrite: false
+        });
+        const sprite = new THREE.Sprite(mat);
+        const baseSize = Math.max(3, Math.min(10, (n.size || 3) * 1.4));
+        sprite.scale.set(baseSize, baseSize, 1);
+        sprite.position.set(n.x, n.y, n.z);
+        sprite.userData = { id: n.id, node: n, baseSize };
+        graphGroup.add(sprite);
+        nodeMap.set(n.id, sprite);
+        nodeSprites.push(sprite);
+      });
+      nodeSpritesRef.current = nodeSprites;
+
+      const edgeObjects = [];
+      data.edges.forEach(e => {
+        const s = nodeMap.get(e.source);
+        const t = nodeMap.get(e.target);
+        if (!s || !t) return;
+        const geo = new THREE.BufferGeometry().setFromPoints([s.position, t.position]);
+        const mat = new THREE.LineBasicMaterial({
+          color: 0xFFD700,
+          transparent: true,
+          opacity: 0.05
+        });
+        const line = new THREE.Line(geo, mat);
+        line.userData = { source: e.source, target: e.target };
+        graphGroup.add(line);
+        edgeObjects.push(line);
+      });
+      edgeObjectsRef.current = edgeObjects;
+
+      const raycaster = raycasterRef.current;
+      const mouse = mouseRef.current;
+
+      const onPointerMove = (e) => {
+        const rect = container.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(nodeSprites);
+        if (hits.length > 0) {
+          container.style.cursor = 'pointer';
+        } else {
+          container.style.cursor = 'default';
+        }
+      };
+
+      const onPointerClick = (e) => {
+        const rect = container.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(nodeSprites);
+        if (hits.length > 0) {
+          const obj = hits[0].object;
+          const nid = obj.userData.id;
+          setSelectedNode(obj.userData.node);
+          const neighborIds = new Set([nid]);
+          edgeObjects.forEach(line => {
+            if (line.userData.source === nid) neighborIds.add(line.userData.target);
+            if (line.userData.target === nid) neighborIds.add(line.userData.source);
+          });
+          nodeSprites.forEach(spr => {
+            const active = neighborIds.has(spr.userData.id);
+            spr.material.opacity = active ? 1.0 : 0.12;
+            const bs = spr.userData.baseSize;
+            spr.scale.set(active ? bs*1.4 : bs, active ? bs*1.4 : bs, 1);
+          });
+          edgeObjects.forEach(line => {
+            const active = line.userData.source === nid || line.userData.target === nid;
+            line.material.opacity = active ? 0.45 : 0.02;
+          });
+        } else {
+          setSelectedNode(null);
+          nodeSprites.forEach(spr => {
+            spr.material.opacity = 0.92;
+            const bs = spr.userData.baseSize;
+            spr.scale.set(bs, bs, 1);
+          });
+          edgeObjects.forEach(line => {
+            line.material.opacity = 0.05;
+          });
+        }
+      };
+
+      container.addEventListener('pointermove', onPointerMove);
+      container.addEventListener('click', onPointerClick);
+
+      const onWheel = (e) => { e.preventDefault(); };
+      container.addEventListener('wheel', onWheel, { passive: false });
+
+      const onResize = () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+        composer.setSize(w, h);
+        bloomPass.resolution.set(w, h);
+      };
+      window.addEventListener('resize', onResize);
+
+      const animate = () => {
+        frameRef.current = requestAnimationFrame(animate);
+        controls.update();
+        if (entryProgress.current < 1) {
+          entryProgress.current += 0.008;
+          const t = Math.min(1, entryProgress.current);
+          const ease = 1 - Math.pow(1 - t, 3);
+          camera.position.z = 350 - (230 * ease);
+        }
+        composer.render();
+      };
+      animate();
+      setLoading(false);
+
+      return () => {
+        cancelAnimationFrame(frameRef.current);
+        container.removeEventListener('pointermove', onPointerMove);
+        container.removeEventListener('click', onPointerClick);
+        container.removeEventListener('wheel', onWheel);
+        window.removeEventListener('resize', onResize);
+        controls.dispose();
+        renderer.dispose();
+        if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
+      };
+    }, [data]);
+
+    useEffect(() => {
+      const nodeSprites = nodeSpritesRef.current;
+      const edgeObjects = edgeObjectsRef.current;
+      if (!nodeSprites.length) return;
+      const comm = highlightCommunity;
+      nodeSprites.forEach(spr => {
+        const match = comm === null || spr.userData.node.community === comm;
+        spr.material.opacity = match ? 0.92 : 0.08;
+        const bs = spr.userData.baseSize;
+        spr.scale.set(match ? bs : bs*0.8, match ? bs : bs*0.8, 1);
+      });
+      edgeObjects.forEach(line => {
+        line.material.opacity = comm === null ? 0.05 : 0.02;
+      });
+    }, [highlightCommunity]);
+
+    const handleDownload = useCallback(async () => {
+      try {
+        const fflate = await import('https://esm.sh/fflate@0.8.2');
+        const json = JSON.stringify(data, null, 2);
+        const zipped = fflate.zipSync({ 'citation_star_map_corpus.json': fflate.strToU8(json) });
+        const blob = new Blob([zipped], { type: 'application/zip' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'citation_star_map_corpus.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error(e);
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'citation_star_map_corpus.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }, [data]);
+
+    const firstAuthor = selectedNode ? getFirstAuthor(selectedNode.authors) : '';
+
+    return React.createElement(ErrorBoundary, null,
+      React.createElement('div', { className: 'canvas-wrap', ref: canvasWrapRef }),
+      React.createElement('div', { className: 'ui-layer' },
+        React.createElement('div', { className: 'header' },
+          React.createElement('h1', null, 'Citation Star Map'),
+          React.createElement('p', null, `Network Neuroscience & Connectomics · ${data.nodes.length} Papers · Keyword Co-occurrence Proxy`)
+        ),
+        React.createElement('button', { className: 'download-btn', onClick: handleDownload, title: 'Download corpus as ZIP' },
+          React.createElement('span', null, '⬇'),
+          'Download Corpus'
+        ),
+        React.createElement('div', { className: 'legend' },
+          React.createElement('div', { className: 'legend-title' }, 'Communities'),
+          communities.map(c =>
+            React.createElement('div', {
+              key: c.id,
+              className: 'legend-item',
+              onMouseEnter: () => setHighlightCommunity(c.id),
+              onMouseLeave: () => setHighlightCommunity(null),
+              onClick: () => setHighlightCommunity(prev => prev === c.id ? null : c.id)
+            },
+              React.createElement('span', { className: 'legend-dot', style: { color: c.color, background: c.color } }),
+              React.createElement('span', { className: 'legend-label' }, c.label)
+            )
+          )
+        ),
+        React.createElement('div', { className: `detail-card ${selectedNode ? '' : 'hidden'}` },
+          selectedNode && React.createElement(React.Fragment, null,
+            React.createElement('div', { className: 'detail-header' },
+              React.createElement('div', { className: 'detail-title' }, selectedNode.title),
+              React.createElement('button', { className: 'detail-close', onClick: () => setSelectedNode(null) }, '×')
+            ),
+            React.createElement('div', { className: 'detail-meta' },
+              React.createElement('span', null, firstAuthor),
+              React.createElement('span', null, selectedNode.year),
+              React.createElement('span', null, selectedNode.community_label)
+            ),
+            React.createElement('div', { className: 'detail-abstract' }, selectedNode.abstract),
+            React.createElement('div', { className: 'detail-keywords' },
+              selectedNode.keywords.map((k, i) => React.createElement('span', { key: i }, k))
+            ),
+            selectedNode.url && React.createElement('a', {
+              className: 'detail-link',
+              href: selectedNode.url,
+              target: '_blank',
+              rel: 'noreferrer'
+            }, 'Open Paper →')
+          )
+        ),
+        React.createElement('div', { className: 'badge' }, 'Edges: keyword co-occurrence proxy (citation graph incomplete)'),
+        React.createElement('a', { className: 'back-link', href: 'index.html' }, '← Back to main app')
+      ),
+      React.createElement('div', { className: `loading ${loading ? '' : 'done'}` },
+        React.createElement('div', { className: 'loading-text' }, 'INITIALIZING STARFIELD...')
+      )
+    );
+  }
+
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+
+  // Show feedback while the 669KB dataset fetches — the App's own overlay only
+  // mounts after data arrives.
+  root.render(
+    React.createElement('div', { className: 'loading' },
+      React.createElement('div', { className: 'loading-text' }, 'INITIALIZING STARFIELD...')
+    )
+  );
+
+  loadGraphData()
+    .then(data => {
+      root.render(React.createElement(ErrorBoundary, null, React.createElement(App, { data })));
+    })
+    .catch(err => {
+      console.error('Failed to load graph data:', err);
+      root.render(React.createElement('div', { style: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#020205', padding: 24 } },
+        React.createElement('div', { className: 'loading-error' },
+          React.createElement('div', { style: { fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#f8fafc' } }, 'Failed to load graph data'),
+          React.createElement('div', null, err && err.message ? String(err.message) : String(err)),
+          React.createElement('div', { style: { marginTop: 12 } },
+            'The demo page reads ', React.createElement('code', null, './graph_data.json'),
+            ' — make sure it is served alongside this page (e.g. ', React.createElement('code', null, 'npm run dev'), ').'
+          )
+        )
+      ));
+    });
+</script>
+</body>
 </html>
