@@ -37,7 +37,8 @@
     "blocks:code:test": "node blocks/test-codesuggester.mjs",
     "blocks:updates:test": "node blocks/test-paperupdates.mjs",
     "blocks:artifact:dump": "node blocks/verify-full-artifact.mjs",
-    "blocks:demo:call": "node scripts/call-blocks-agent.mjs star_map_demo"
+    "blocks:demo:call": "node scripts/call-blocks-agent.mjs star_map_demo",
+    "blocks:watch:all": "node scripts/supervise-all-agents.js"
   },
   "dependencies": {
     "file-saver": "^2.0.5",

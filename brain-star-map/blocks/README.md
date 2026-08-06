@@ -238,6 +238,37 @@ tail -5 blocks/logs/router-watchdog.log   # "agent exited … restarting in 5s�
 node scripts/call-blocks-agent.mjs router "How many papers are in the corpus?"
 ```
 
+### 4c. Supervise the whole network (all 22 agents)
+
+A single supervisor keeps **every** agent card running — one watchdog per
+agent (crash-restart with backoff), PID-locked against duplicates:
+
+```bash
+npm run blocks:watch:all        # → node scripts/supervise-all-agents.js
+```
+
+It discovers agents by scanning `blocks/agents/` + `blocks/a2a-demo/` for
+`agent-card.json` (no hardcoded list — new cards are picked up automatically),
+logs to `blocks/logs/supervisor.log`, and holds `blocks/logs/supervisor.pid`.
+SIGINT/SIGTERM stops every watchdog gracefully.
+
+**Auto-start at logon (no admin needed).** Task Scheduler registration is
+admin-gated on this machine, so the supervisor is launched from the Windows
+Startup folder at every logon:
+
+```text
+%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\BlocksAgentNetwork.cmd
+    start "" /min "C:\Program Files\nodejs\node.exe" "C:\Users\dividicus\Downloads\brains\brain-star-map\scripts\supervise-all-agents.js"
+```
+
+Verify the whole network is supervised:
+
+```bash
+ls blocks/logs/*.child.pid | wc -l     # 22 = one live agent per card
+# crash-sim: kill every agent at once, watchdogs relaunch all of them
+# taskkill //F //IM blocks.exe && sleep 12 && ls blocks/logs/*.child.pid | wc -l
+```
+
 If you later get an admin shell, register the same watchdog as a proper
 scheduled task instead of the Startup folder:
 
