@@ -24,6 +24,11 @@ export const ADA_NAMESPACE = 'ada_syndicate'
 export const adaCache = new ADACache()
 export const adaKb = new KnowledgeBase()
 
+// Parallel cache storing the persona + grounded sources that produced each
+// cached answer, so a CACHE_HIT can repopulate metadata instead of returning
+// `persona: null, sources: []` (the UI renders a sources panel from it).
+export const adaMetaCache = new ADACache()
+
 const SYNDICATE_PROMPT = `You are a member of the ADA Syndicate, a council of 15 reasoning experts.
 Answer the user's query from your persona's grounding instruction using the ADA PROTOCOL CONTEXT below.
 Cite grounded papers by title and year exactly as given. If the CONTEXT is empty or insufficient, say so plainly
@@ -71,7 +76,7 @@ export async function answerAdaSyndicate(question, agentId, opts = {}) {
       ada: { status: 'INFRA', intent: 'discover_bridges', persona: null, context_used: 0, threats: [], modelUsed: false, cached: false, durationMs: Date.now() - t0 },
     }
   }
-  if (/advise on (the )?(infrastructure|database)|database health|scaling (advice|recommendation)|vector index|hnsw/i.test(question)) {
+  if (/advise on (the )?(infrastructure|database)|database health|(our|the|this) (database|vector index|infrastructure|hnsw)|hnsw (index|indexing|config)/i.test(question)) {
     return {
       answer: `[Data Agent] ${dataAdvise()}`,
       sources: [],
@@ -82,10 +87,11 @@ export async function answerAdaSyndicate(question, agentId, opts = {}) {
   // 2. CACHE CHECK (ADA Step 1)
   const cached = cache.get(question)
   if (cached) {
+    const meta = adaMetaCache.get(question) || { persona: null, sources: [] }
     return {
       answer: cached,
-      sources: [],
-      ada: { status: 'CACHE_HIT', persona: null, context_used: 0, threats: [], modelUsed: false, cached: true, durationMs: 0 },
+      sources: meta.sources || [],
+      ada: { status: 'CACHE_HIT', persona: meta.persona || null, context_used: (meta.sources || []).length, threats: [], modelUsed: false, cached: true, durationMs: 0 },
     }
   }
 
@@ -122,8 +128,11 @@ export async function answerAdaSyndicate(question, agentId, opts = {}) {
         : `No knowledge-base papers matched "${question}" in the ${persona.kbDomain} domain.`)
   }
 
-  // 6. STORE IN CACHE
-  if (text) cache.set(question, text)
+  // 6. STORE IN CACHE (answer + the persona/sources metadata that produced it)
+  if (text) {
+    cache.set(question, text)
+    adaMetaCache.set(question, { persona: persona.name, sources: context.map(toSource) })
+  }
 
   return {
     answer: text,
@@ -178,7 +187,7 @@ export async function runAdaSyndicate(task, ctx, emit) {
     }
   }
 
-  emit?.({ type: 'status', message: `ADA Syndicate: ${result.ada.status} (${result.persona?.name || 'n/a'})` })
+  emit?.({ type: 'status', message: `ADA Syndicate: ${result.ada.status} (${result.ada.intent || result.persona?.name || 'n/a'})` })
   return {
     answer: result.answer,
     sources: result.sources,
@@ -200,6 +209,19 @@ const DOI_RE = /10\.\d{4,9}\/[-._;()/:A-Za-z0-9]+/
 export async function runAdaFactCheck(task, ctx) {
   const question = extractQuestion(task)
   ctx?.reportStatus?.('ada_fact_check: checking DOI validity / retraction status (no LLM)…')
+
+  // Sentinel sweep, consistent with the syndicate — cheap and no LLM path,
+  // but keeps the security story uniform across all ADA agents.
+  const sec = securitySweep(question)
+  if (!sec.is_safe) {
+    return {
+      artifacts: [{
+        data: `BLOCKED: the ADA Sentinel security sweep stopped this request.\nThreats: ${sec.threats.join('; ')}`,
+        mimeType: 'text/plain',
+        outputId: 'answer',
+      }],
+    }
+  }
 
   const doiMatch = DOI_RE.exec(question)
   let doi = doiMatch ? doiMatch[0] : null
@@ -239,6 +261,19 @@ export async function runAdaFactCheck(task, ctx) {
 export async function runAdaHarvest(task, ctx, { fetcher } = {}) {
   const topicPart = task?.requestParts?.find(p => p.partId === 'topic')
   const topic = topicPart?.text?.trim() || 'brain-computer interface'
+
+  // Sentinel sweep on the incoming topic.
+  const sec = securitySweep(topic)
+  if (!sec.is_safe) {
+    return {
+      artifacts: [{
+        data: `BLOCKED: the ADA Sentinel security sweep stopped this request.\nThreats: ${sec.threats.join('; ')}`,
+        mimeType: 'text/plain',
+        outputId: 'answer',
+      }],
+    }
+  }
+
   ctx?.reportStatus?.(`ada_harvest: scraping arXiv for the newest papers on "${topic.slice(0, 60)}"…`)
 
   const papers = await harvestPapers(topic, 10, { fetcher })

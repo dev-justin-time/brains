@@ -95,6 +95,12 @@ const ok = (name) => { passed++; console.log(`  ✓ ${name}`) }
   assert.equal(a2.ada.status, 'INFRA')
   assert.equal(a2.ada.intent, 'data_advise')
   assert.ok(a2.answer.length > 10)
+  // Tightened data_advise: a general research question must NOT be hijacked,
+  // but a platform-referential one still routes to the Data Agent.
+  const research = await answerAdaSyndicate('Which vector index is best for EEG embeddings?', null, { forceNoModel: true })
+  assert.notEqual(research.ada.status, 'INFRA', 'general research question not hijacked by data_advise')
+  const platform = await answerAdaSyndicate('How should we scale our vector index storage?', null, { forceNoModel: true })
+  assert.equal(platform.ada.intent, 'data_advise', 'platform-referential vector-index question routes to data agent')
   ok('discover-bridges + data-advise intents reachable (meta-agents wired)')
 }
 
@@ -108,6 +114,7 @@ const ok = (name) => { passed++; console.log(`  ✓ ${name}`) }
   const second = await answerAdaSyndicate('how do incentives fail in LLM agents?', 'incentive_architect', { forceNoModel: true, cache: c, kb })
   assert.equal(second.ada.status, 'CACHE_HIT', 'second identical query served from cache')
   assert.equal(second.answer, first.answer)
+  assert.equal(second.ada.persona, first.ada.persona, 'cache hit restores persona metadata')
   ok('semantic cache eliminates repeat LLM work')
 }
 
