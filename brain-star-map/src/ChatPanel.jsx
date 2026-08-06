@@ -24,7 +24,7 @@ function readNDJSON(res, handlers) {
   return pump()
 }
 
-export default function ChatPanel() {
+export default function ChatPanel({ totalPapers }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -211,7 +211,7 @@ export default function ChatPanel() {
       <div className="chat-msgs" ref={scrollRef}>
         {messages.length === 0 && (
           <div className="chat-empty">
-            <p>Ask the expert agents about the <strong>{health?.db?.papers || 215}</strong> papers in this corpus.</p>
+            <p>Ask the expert agents about the <strong>{health?.db?.papers || totalPapers || 215}</strong> papers in this corpus.</p>
             <p className="chat-empty-sub">Popular questions answer instantly from cache — no model calls.</p>
             {popular.length > 0 && (
               <div className="chat-chips">

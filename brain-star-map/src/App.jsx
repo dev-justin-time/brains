@@ -67,6 +67,15 @@ export default function App() {
     return map
   }, [data])
 
+  const commCounts = useMemo(() => {
+    if (!data) return {}
+    const map = {}
+    data.nodes.forEach(n => {
+      map[n.community] = (map[n.community] || 0) + 1
+    })
+    return map
+  }, [data])
+
   // Loading state
   if (loading) {
     return (
@@ -105,8 +114,16 @@ export default function App() {
         selectedNode={selectedNode}
       />
       <div className="ui-layer">
+        <div className="header-banner">
+          <h1>Brain Citation Star Map</h1>
+          <p>
+            {data.meta.total_papers} papers · {data.meta.total_edges} edges ·{' '}
+            {Object.keys(data.meta.communities).length} communities · arXiv {data.meta.generated_at}
+          </p>
+        </div>
         <Legend
           communities={data.meta.communities}
+          counts={commCounts}
           activeComm={highlightComm}
           onHover={handleLegendHover}
           onClick={handleLegendClick}
@@ -114,13 +131,14 @@ export default function App() {
         />
         <DetailCard node={selectedNodeData} onClose={handleCloseDetail} />
         <DownloadButton nodes={data.nodes} />
-        <ChatPanel />
+        <ChatPanel totalPapers={data.nodes.length} />
         <a className="demo-link" href="demo.html" title="Open the standalone demo page (same visualization, no chat panel)">
           Demo page ↗
         </a>
         <div className="meta-badge">
           <div>
-            {data.meta.total_papers} papers • {data.meta.total_edges} edges • {Object.keys(data.meta.communities).length} communities
+            {data.meta.total_papers} papers • {data.meta.total_edges} edges •{' '}
+            {Object.keys(data.meta.communities).length} communities
           </div>
           <div style={{ opacity: 0.6, marginTop: 3 }}>
             {data.meta.data_completeness?.note || ''}

@@ -28,6 +28,34 @@ body { background: var(--bg); color: var(--text); }
 }
 .ui-layer > * { pointer-events: auto; }
 
+.header-banner {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  max-width: calc(100vw - 500px);
+  min-width: 260px;
+}
+.header-banner h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f8fafc;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  white-space: nowrap;
+}
+.header-banner p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  white-space: nowrap;
+}
+
 .legend {
   position: absolute;
   top: 16px;
@@ -61,6 +89,24 @@ body { background: var(--bg); color: var(--text); }
 .comm-row:hover, .comm-row.active {
   background: rgba(255,255,255,0.06);
   color: var(--text);
+}
+.comm-row {
+  justify-content: space-between;
+}
+.comm-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comm-count {
+  font-size: 10px;
+  color: var(--muted);
+  background: rgba(255,255,255,0.07);
+  border-radius: 999px;
+  padding: 1px 7px;
+  min-width: 24px;
+  text-align: center;
 }
 .comm-dot {
   width: 9px;
@@ -173,7 +219,7 @@ body { background: var(--bg); color: var(--text); }
 
 .demo-link {
   position: absolute;
-  top: 16px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 10.5px;
@@ -488,7 +534,11 @@ body { background: var(--bg); color: var(--text); }
 @media (max-width: 640px) {
   .detail-card { width: calc(100vw - 32px); right: 8px; }
   .legend { max-width: 180px; top: 8px; left: 8px; }
+  .header-banner { top: 8px; max-width: calc(100vw - 200px); }
+  .header-banner h1 { font-size: 13px; }
+  .header-banner p { font-size: 10px; }
   .meta-badge { max-width: 200px; font-size: 9.5px; }
   .chat-panel { bottom: 8px; right: 8px; width: calc(100vw - 16px); height: calc(100vh - 90px); }
   .chat-fab { bottom: 8px; right: 8px; }
+  .demo-link { bottom: 8px; }
 }

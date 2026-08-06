@@ -3,6 +3,28 @@ import path from 'path'
 
 const OUT = path.join(process.cwd(), 'public', 'graph_data.json')
 
+// Seed the build from the previously generated corpus (if present) so a
+// refresh unions fresh arXiv results with the existing papers instead of
+// replacing them — keeps the corpus rich while updating stats.
+function loadExistingPapers() {
+  try {
+    const existing = JSON.parse(fs.readFileSync(OUT, 'utf8'))
+    const nodes = existing.nodes || []
+    if (!Array.isArray(nodes) || nodes.length === 0) return []
+    return nodes.map(n => ({
+      id: n.id,
+      title: n.title || '',
+      authors: n.authors || [],
+      abstract: n.abstract || '',
+      published: n.published || '',
+      url: n.url || '',
+      keywords: Array.isArray(n.keywords) ? n.keywords : extractKeywords((n.title || '') + ' ' + (n.abstract || '')),
+    }))
+  } catch {
+    return []
+  }
+}
+
 const TOPICS = [
   { q: 'brain computer interface EEG', max: 50 },
   { q: 'brainwave decoding machine learning', max: 30 },
@@ -35,7 +57,7 @@ function extractKeywords(text) {
 }
 
 async function fetchArxiv(query, maxResults) {
-  const url = `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`
+  const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`
   const res = await fetch(url)
   const xml = await res.text()
   const entries = []
@@ -44,7 +66,7 @@ async function fetchArxiv(query, maxResults) {
   while ((m = entryRegex.exec(xml)) !== null) {
     const entry = m[1]
     const get = (tag) => {
-      const r = new RegExp(`<${tag}>([\s\S]*?)<\/${tag}>`)
+      const r = new RegExp(`<${tag}>([^]*?)<\/${tag}>`)
       const x = r.exec(entry)
       return x ? x[1].trim() : ''
     }
@@ -98,45 +120,58 @@ function buildGraph(papers) {
     deg2.set(e.target, (deg2.get(e.target) || 0) + e.weight)
   })
 
-  const adj = new Map()
-  uniq.forEach(p => adj.set(p.id, []))
-  topEdges.forEach(e => {
-    adj.get(e.source).push(e.target)
-    adj.get(e.target).push(e.source)
-  })
+  // Curated topic taxonomy for community labelling (restores the
+  // BCI & EEG / Neural Decoding / Connectomics / ... labels the corpus shipped with).
+  const TOPIC_RULES = [
+    { id: 'BCI_EEG', label: 'BCI & EEG', words: ['eeg','bci','brain-computer','brain computer','motor imagery','ssvep','p300','erp','neurofeedback','wheelchair','prosthetics','cortico','brainwave','emg','eog','invasive','non-invasive'] },
+    { id: 'NEURAL_DECODING', label: 'Neural Decoding', words: ['decoding','decoder','visual decoding','language decoding','imagined speech','neural decoding','reconstruction','semantic decoding','speech decoding'] },
+    { id: 'CONNECTOMICS', label: 'Connectomics', words: ['connectome','connectomics','functional connectivity','structural connectivity','brain network','graph neural','gnn','network neuroscience','topology','hub','tractography'] },
+    { id: 'DEEP_LEARNING', label: 'Deep Learning', words: ['deep learning','cnn','transformer','foundation model','llm','large language model','diffusion','spiking','snn','neuromorphic','attention','pretrain','pre-training','self-supervised','contrastive'] },
+    { id: 'CLINICAL_APPS', label: 'Clinical Apps', words: ['clinical','rehabilitation','seizure','epilepsy','depression','alzheimer','stroke','therapy','emotion','attention','sleep','disorder','anxiety','patient','biomarker','diagnos'] },
+    { id: 'SECURITY_PRIVACY', label: 'Security & Privacy', words: ['security','privacy','adversarial','federated','neurosecurity','threat','attack','privacy-preserving','synthetic data','encryption'] },
+    { id: 'OTHER', label: 'Other', words: [] },
+  ]
 
-  const visited = new Set()
-  const comms = []
-  for (const p of uniq) {
-    if (visited.has(p.id)) continue
-    const q = [p.id]
-    const comm = []
-    visited.add(p.id)
-    while (q.length) {
-      const cur = q.pop()
-      comm.push(cur)
-      for (const nxt of adj.get(cur)) {
-        if (!visited.has(nxt)) {
-          visited.add(nxt)
-          q.push(nxt)
-        }
+  function classifyTopic(keywords, text) {
+    const t = (text || '').toLowerCase()
+    const kws = (keywords || []).map(k => k.toLowerCase())
+    let best = null
+    let bestScore = 0
+    for (const rule of TOPIC_RULES) {
+      if (!rule.words.length) continue
+      let score = 0
+      for (const w of rule.words) {
+        if (kws.includes(w)) score += 2
+        else if (t.includes(w)) score += 1
       }
+      if (score > bestScore) { bestScore = score; best = rule }
     }
-    comms.push(comm)
+    return best ? { id: best.id, label: best.label } : { id: 'OTHER', label: 'Other' }
   }
 
-  const BIG = 5
-  const nodeComm = {}
-  let nextId = 0
-  comms.forEach(c => {
-    if (c.length >= BIG) {
-      c.forEach(id => nodeComm[id] = nextId)
-      nextId++
-    }
+  const paperTopics = new Map()
+  uniq.forEach(p => {
+    paperTopics.set(p.id, classifyTopic(p.keywords, p.title + ' ' + p.abstract))
   })
-  const otherId = nextId
-  comms.forEach(c => {
-    if (c.length < BIG) c.forEach(id => nodeComm[id] = otherId)
+
+  // Community assignment: curated topic (matches the expert-agent taxonomy:
+  // BCI & EEG, Neural Decoding, Connectomics, Deep Learning, Clinical Apps,
+  // Security & Privacy, Other). Robust at any corpus size, unlike connected
+  // components which collapse to one giant cluster once the graph is dense.
+  const topicFreq = {}
+  uniq.forEach(p => {
+    const t = paperTopics.get(p.id)
+    topicFreq[t ? t.id : 'OTHER'] = (topicFreq[t ? t.id : 'OTHER'] || 0) + 1
+  })
+  const topicOrder = Object.entries(topicFreq)
+    .sort((a, b) => b[1] - a[1])
+    .map(x => x[0])
+  const topicIndex = {}
+  topicOrder.forEach((id, idx) => { topicIndex[id] = idx })
+  const nodeComm = {}
+  uniq.forEach(p => {
+    const t = paperTopics.get(p.id)
+    nodeComm[p.id] = topicIndex[t ? t.id : 'OTHER']
   })
 
   const jewel = ['#E0115F','#0F52BA','#50C878','#9966CC','#F4C430','#FF6B35','#40E0D0','#C71585','#20B2AA']
@@ -196,33 +231,37 @@ function buildGraph(papers) {
   })
 
   const maxDeg = Math.max(...deg2.values()) || 1
-  const nodes = uniq.map(p => ({
-    id: p.id,
-    title: p.title,
-    authors: p.authors,
-    first_author: getFirstAuthor(p.authors),
-    abstract: p.abstract,
-    year: parseInt(p.published.slice(0,4)) || 2024,
-    url: p.url,
-    published: p.published,
-    keywords: p.keywords,
-    community: nodeComm[p.id],
-    color: jewel[nodeComm[p.id] % jewel.length],
-    size: Math.round((3 + 9 * Math.sqrt((deg2.get(p.id) || 0) / maxDeg)) * 100) / 100 || 3,
-    degree: deg2.get(p.id) || 0,
-    fx: positions[p.id][0],
-    fy: positions[p.id][1],
-    fz: positions[p.id][2],
-  }))
 
+  // Community labels = the curated topic label for each community id.
   const commLabels = {}
-  commList.forEach(cid => {
-    const topics = nodes.filter(n => n.community === cid).flatMap(n => n.keywords)
-    const counts = {}
-    topics.forEach(t => { counts[t] = (counts[t] || 0) + 1 })
-    const top = Object.entries(counts).sort((a,b) => b[1] - a[1])[0]?.[0] || 'General'
-    const label = top ? top[0].toUpperCase() + top.slice(1) : `Cluster ${cid}`
-    commLabels[cid] = label
+  topicOrder.forEach((id, idx) => {
+    const rule = TOPIC_RULES.find(r => r.id === id)
+    commLabels[idx] = rule ? rule.label : 'Other'
+  })
+
+  const nodes = uniq.map(p => {
+    const t = paperTopics.get(p.id)
+    const cid = nodeComm[p.id]
+    return {
+      id: p.id,
+      title: p.title,
+      authors: p.authors,
+      first_author: getFirstAuthor(p.authors),
+      abstract: p.abstract,
+      year: parseInt(p.published.slice(0,4)) || 2024,
+      url: p.url,
+      published: p.published,
+      keywords: p.keywords,
+      topic: t ? t.id : 'OTHER',
+      community: cid,
+      community_label: commLabels[cid] || 'Other',
+      color: jewel[cid % jewel.length],
+      size: Math.round((3 + 9 * Math.sqrt((deg2.get(p.id) || 0) / maxDeg)) * 100) / 100 || 3,
+      degree: deg2.get(p.id) || 0,
+      fx: positions[p.id][0],
+      fy: positions[p.id][1],
+      fz: positions[p.id][2],
+    }
   })
 
   const graph = {
@@ -250,7 +289,8 @@ function buildGraph(papers) {
 }
 
 async function main() {
-  const all = []
+  const all = loadExistingPapers()
+  if (all.length) console.log(`Seeding from existing corpus: ${all.length} papers`)
   for (const t of TOPICS) {
     console.log(`Fetching: ${t.q}`)
     try {

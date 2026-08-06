@@ -1,4 +1,4 @@
-import{C as b,P as M,V as u,W as v,H as g,U as T,S as f,a as h,b as p,A as C,M as S,F as U}from"./index-CfqYfpoh.js";const _={uniforms:{tDiffuse:{value:null},luminosityThreshold:{value:1},smoothWidth:{value:1},defaultColor:{value:new b(0)},defaultOpacity:{value:0}},vertexShader:`
+import{C as b,P as M,V as u,W as v,H as g,U as T,S as f,a as h,b as p,A as C,M as S,F as U}from"./index-CuOS0S46.js";const _={uniforms:{tDiffuse:{value:null},luminosityThreshold:{value:1},smoothWidth:{value:1},defaultColor:{value:new b(0)},defaultOpacity:{value:0}},vertexShader:`
 
 		varying vec2 vUv;
 
