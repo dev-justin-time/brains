@@ -13,7 +13,7 @@
 
 import { ADACache, KnowledgeBase } from '../../ada/engine.js'
 import { EXPERT_REGISTRY, resolvePersona, PERSONA_LIST } from '../../ada/experts.js'
-import { securitySweep, factCheck, harvestPapers } from '../../ada/infra.js'
+import { securitySweep, factCheck, harvestPapers, discoverBridges, dataAdvise } from '../../ada/infra.js'
 import { chat, chatStream, hasModel, systemMessage, userMessage, CHAT_MODEL } from '../../server/ollama.js'
 import { extractQuestion } from './engine.js'
 
@@ -55,6 +55,27 @@ export async function answerAdaSyndicate(question, agentId, opts = {}) {
         `Threats detected: ${sec.threats.join('; ')}`,
       sources: [],
       ada: { status: 'BLOCKED', persona: null, context_used: 0, threats: sec.threats, modelUsed: false, cached: false, durationMs: Date.now() - t0 },
+    }
+  }
+
+  // 1b. INFRA INTENTS — LLM-free fast paths (the Discovery + Data agents),
+  // reachable so the ported meta-agent logic is actually wired in.
+  if (/bridge papers|discover bridges|betweenness|interdisciplinary hub/i.test(question)) {
+    const { bridges, error } = discoverBridges(3)
+    const lines = bridges.map((b, i) => `${i + 1}. ${b.title} — betweenness ${b.bridge_score} (${b.action})`)
+    return {
+      answer: bridges.length
+        ? 'Top bridge papers (highest betweenness centrality — they link otherwise-separate research clusters):\n' + lines.join('\n')
+        : `Bridge discovery unavailable: ${error || 'no bridges found'}`,
+      sources: bridges.map(b => ({ title: b.title, url: `https://arxiv.org/abs/${b.node_id}` })),
+      ada: { status: 'INFRA', intent: 'discover_bridges', persona: null, context_used: 0, threats: [], modelUsed: false, cached: false, durationMs: Date.now() - t0 },
+    }
+  }
+  if (/advise on (the )?(infrastructure|database)|database health|scaling (advice|recommendation)|vector index|hnsw/i.test(question)) {
+    return {
+      answer: `[Data Agent] ${dataAdvise()}`,
+      sources: [],
+      ada: { status: 'INFRA', intent: 'data_advise', persona: null, context_used: 0, threats: [], modelUsed: false, cached: false, durationMs: Date.now() - t0 },
     }
   }
 

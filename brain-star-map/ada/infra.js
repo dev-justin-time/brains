@@ -13,10 +13,14 @@ import { loadGraph, buildIndex } from '../blocks/lib/graphexplorer.js'
 
 // ---------- Sentinel: prompt injection + PII ----------
 
+// Injection patterns are scoped to INSTRUCTION-style matches so legitimate
+// research questions (e.g. "how do agents defend against system-prompt
+// attacks?") are not blocked: /system prompt/ and /you are now/ only count
+// when an imperative verb appears near them.
 const INJECTION_PATTERNS = [
   /ignore previous instructions/,
-  /system prompt/,
-  /you are now/,
+  /\b(reveal|print|show|output|expose|leak|ignore|disregard|bypass|override|forget|disclose)\b[^.!\n]{0,40}\bsystem prompt\b/i,
+  /\byou are now\b[^.!\n]{0,30}\b(reveal|tell|say|act|pretend|behave|become)\b/i,
   /\[INST\]/,
   /<\|im_start\|>/,
 ]

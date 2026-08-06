@@ -10,6 +10,15 @@ import { TaskClient } from '@blocks-network/sdk'
 const BASE_URL = process.env.BLOCKS_BASE_URL || 'https://app.blocks.ai'
 const agentName = process.argv[2] || 'router'
 const question = process.argv[3] || 'What is connectomics?'
+// Optional --partId override for agents whose input id isn't "question"
+// (e.g. `--partId topic` for ada_harvest / the pipe feeds).
+let partId = 'question'
+const pi = process.argv.indexOf('--partId')
+if (pi !== -1 && process.argv[pi + 1]) partId = process.argv[pi + 1]
+else {
+  const eq = process.argv.find(a => a.startsWith('--partId='))
+  if (eq) partId = eq.split('=')[1]
+}
 
 if (!process.env.BLOCKS_API_KEY) {
   console.error('Missing BLOCKS_API_KEY — run `blocks login --write-env` first.')
@@ -26,7 +35,7 @@ const client = await TaskClient.create({
 
 const session = await client.sendMessage({
   agentName,
-  requestParts: [{ partId: 'question', text: question }],
+  requestParts: [{ partId, text: question }],
   stream: true, // request live token streaming
   // Pass a stable idempotencyKey only when retrying a specific submission.
 })

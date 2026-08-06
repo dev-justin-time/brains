@@ -699,7 +699,11 @@ function adaSyndicateCard() {
       '(bias mitigation, ethics/alignment, incentive design, paradoxes, long-term forecasting, neurodivergent ' +
       'translation, preregistration, and more). Runs a security sweep, serves from a semantic cache, grounds ' +
       'the answer in the built-in knowledge base, then the persona synthesizes a cited reply. ' +
-      'Pass an optional agent_id to pick a persona directly (e.g. "incentive_architect"); otherwise it auto-routes.',
+      'LLM-free intent fast paths are wired in too: "find bridge papers" (betweenness) and "advise on the ' +
+      'infrastructure/database" (scaling advice). Pass an optional agent_id to pick a persona directly ' +
+      '(e.g. "incentive_architect"); otherwise it auto-routes. ada.json status semantics: status describes ' +
+      'GROUNDING (BLOCKED / CACHE_HIT / LLM_GROUNDED / LLM_FALLBACK / INFRA), modelUsed describes whether an ' +
+      'LLM synthesized the answer.',
     ioExtra: {
       inputs: [QUESTION_INPUT, {
         id: 'agent_id',
@@ -710,7 +714,7 @@ function adaSyndicateCard() {
       }],
       outputs: [...OUTPUTS, {
         id: 'ada',
-        description: 'ADA protocol metadata as structured JSON (status: BLOCKED / CACHE_HIT / LLM_GROUNDED / LLM_FALLBACK, persona, context_used, threats)',
+        description: 'ADA protocol metadata as structured JSON (status: BLOCKED / CACHE_HIT / LLM_GROUNDED / LLM_FALLBACK / INFRA; persona; context_used; threats; modelUsed = whether an LLM synthesized the answer)',
         contentType: 'application/json',
         guaranteed: false,
         schema: { type: 'object' },

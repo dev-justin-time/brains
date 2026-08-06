@@ -706,14 +706,20 @@ module). All 15 personas, the ADA cache, the knowledge base, and the 5 infra
 meta-agents are live as three new agents:
 
 - **`ada_syndicate`** ($0.02) — the ADA Protocol engine: SENTINEL security
-  sweep (prompt-injection + PII, blocks unsafe queries) → semantic cache
-  (MD5 + 24h TTL, `CACHE_HIT` skips the LLM) → knowledge-base grounding
-  (`ada/knowledge_base.json`, token-intersection retrieval, domain-filtered by
-  persona) → persona routing (explicit `agent_id` or auto-route by intent) →
-  persona synthesis (streams, local LLM; deterministic retrieval fallback
-  when no model). Artifacts: `answer` + `sources` + structured `ada.json`
-  (`{ status: BLOCKED|CACHE_HIT|LLM_GROUNDED|LLM_FALLBACK, persona,
-  context_used, threats }`).
+  sweep (prompt-injection + PII; the `/system prompt/` and `/you are now/`
+  patterns are scoped to instruction-style matches so legitimate questions
+  like "how do agents defend against system-prompt attacks?" pass) →
+  LLM-free INFRA intent fast paths ("find bridge papers" → betweenness via
+  the Discovery agent; "advise on the infrastructure/database" → Data agent)
+  → semantic cache (MD5 + 24h TTL, `CACHE_HIT` skips the LLM) → knowledge-
+  base grounding (`ada/knowledge_base.json`, token-intersection retrieval,
+  domain-filtered by persona) → persona routing (explicit `agent_id` or
+  auto-route by intent) → persona synthesis (streams, local LLM;
+  deterministic retrieval fallback when no model). Artifacts: `answer` +
+  `sources` + structured `ada.json` (`{ status: BLOCKED|CACHE_HIT|
+  LLM_GROUNDED|LLM_FALLBACK|INFRA, persona, context_used, threats,
+  modelUsed }` — status describes GROUNDING, `modelUsed` describes whether an
+  LLM synthesized the answer).
 - **`ada_fact_check`** ($0.02, LLM-free) — DOI retraction / validity heuristic
   (honest: not an external registry lookup yet); matches KB paper titles too.
 - **`ada_harvest`** ($0.02, LLM-free) — the Paper Agent: live arXiv scrape
