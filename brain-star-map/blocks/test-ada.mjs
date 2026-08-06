@@ -47,14 +47,17 @@ const ok = (name) => { passed++; console.log(`  ✓ ${name}`) }
   // Hermetic domain-filter check on a tiny in-memory KB (independent of corpus
   // content): Philosophy-domain search must never surface a Game Theory paper.
   const tmpKb = path.join(os.tmpdir(), `kb-filter-${Date.now()}.json`)
-  fs.writeFileSync(tmpKb, JSON.stringify([
-    { domain: 'Game Theory', topic: 'Mechanism Design', concept: 'LLM agents', paper_title: 'Mechanism Design with LLM Agents', year: 2025, abstract: 'An abstract about mechanism design and equilibrium in markets.' },
-    { domain: 'Philosophy', topic: 'Ethics', concept: 'Moral agency', paper_title: 'The Ethics of AI', year: 2025, abstract: 'An abstract about moral philosophy and agency in machines.' },
-  ]))
-  const mk = new KnowledgeBase(tmpKb)
-  assert.equal(mk.search('mechanism design equilibrium', 'Philosophy', 3).length, 0, 'domain filter: Philosophy never returns the Game Theory paper')
-  assert.equal(mk.search('mechanism design equilibrium', 'Game Theory', 3)[0].paper_title, 'Mechanism Design with LLM Agents')
-  fs.rmSync(tmpKb, { force: true })
+  try {
+    fs.writeFileSync(tmpKb, JSON.stringify([
+      { domain: 'Game Theory', topic: 'Mechanism Design', concept: 'LLM agents', paper_title: 'Mechanism Design with LLM Agents', year: 2025, abstract: 'An abstract about mechanism design and equilibrium in markets.' },
+      { domain: 'Philosophy', topic: 'Ethics', concept: 'Moral agency', paper_title: 'The Ethics of AI', year: 2025, abstract: 'An abstract about moral philosophy and agency in machines.' },
+    ]))
+    const mk = new KnowledgeBase(tmpKb)
+    assert.equal(mk.search('mechanism design equilibrium', 'Philosophy', 3).length, 0, 'domain filter: Philosophy never returns the Game Theory paper')
+    assert.equal(mk.search('mechanism design equilibrium', 'Game Theory', 3)[0].paper_title, 'Mechanism Design with LLM Agents')
+  } finally {
+    fs.rmSync(tmpKb, { force: true }) // no leak if an assertion throws
+  }
   ok('token-intersection search + corpus-seeded KB + hermetic domain filter')
 }
 

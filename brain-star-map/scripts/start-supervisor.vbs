@@ -10,4 +10,6 @@
 ' Usage:  wscript scripts\start-supervisor.vbs
 Set sh = CreateObject("WScript.Shell")
 sh.CurrentDirectory = "C:\Users\dividicus\Downloads\brains\brain-star-map"
-sh.Run "node scripts/supervise-all-agents.js", 0, False
+' Absolute node path (like the Startup-folder .cmd) — wscript swallows launch
+' errors silently, so don't rely on `node` being on PATH.
+sh.Run "C:\Program Files\nodejs\node.exe scripts/supervise-all-agents.js", 0, False

@@ -238,7 +238,7 @@ tail -5 blocks/logs/router-watchdog.log   # "agent exited … restarting in 5s�
 node scripts/call-blocks-agent.mjs router "How many papers are in the corpus?"
 ```
 
-### 4c. Supervise the whole network (all 22 agents)
+### 4c. Supervise the whole network (all 25 agents)
 
 A single supervisor keeps **every** agent card running — one watchdog per
 agent (crash-restart with backoff), PID-locked against duplicates:
@@ -785,7 +785,7 @@ they pick up the paid registry state. Consumers keep the same SDK calls — paid
 agents are charged automatically from the caller's balance. The demo trio
 (`my_echo`, `my_adder`, `my_orchestrator`) are also $0.02/task.
 
-All 22 agents run under the network supervisor (`scripts/supervise-all-agents.js`,
+All 25 agents run under the network supervisor (`scripts/supervise-all-agents.js`,
 `npm run blocks:watch:all` — see **4c** above): each has its own watchdog with
 crash-restart + backoff, and the whole network auto-starts at logon via the
 Windows Startup folder entry (`BlocksAgentNetwork.cmd`).

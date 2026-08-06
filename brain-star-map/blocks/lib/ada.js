@@ -32,7 +32,7 @@ export const adaMetaCache = new ADACache()
 const SYNDICATE_PROMPT = `You are a member of the ADA Syndicate, a council of 15 reasoning experts.
 Answer the user's query from your persona's grounding instruction using the ADA PROTOCOL CONTEXT below.
 Cite grounded papers by title and year exactly as given. If the CONTEXT is empty or insufficient, say so plainly
-and prefix your answer with "[Fallback Mode]". Never invent citations, DOIs, or paper titles.`
+and prefix your answer with "[Fallback Mode]". Never invent citations, DOIs, or paper titles; cite only papers listed in the CONTEXT, by title and year exactly as given.`
 
 // Map a knowledge-base entry to the shared sources artifact shape. Corpus
 // entries carry a live arXiv `url` (public/graph_data.json has no DOIs); the

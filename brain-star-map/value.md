@@ -15,7 +15,7 @@
 | Dormant cards (4) | ✅ **published + live 2026-08-05** — `expert_clinical_apps`, `expert_deep_learning`, `expert_neural_decoding`, `expert_other` |
 | Engine | `server/` hybrid retrieval + local Ollama → **near-zero marginal cost**, LLM-free fast paths |
 | Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 24 paid agents (20 @ $0.02/task incl. the ADA trio, `lit_review` + `grant_writer` @ $0.10/task, 2 pipe @ $0.02/min) + 1 free (`star_map_demo`) (85/15 split); all 25 agents supervised with boot auto-start (see Operations) |
-| Operations | ✅ **all 22 agents supervised + auto-start 2026-08-05** — `scripts/supervise-all-agents.js` (`npm run blocks:watch:all`) runs one watchdog per agent (crash-restart with exponential backoff, PID-locked, per-agent logs) and the whole network boots at logon via the Windows Startup folder entry (`BlocksAgentNetwork.cmd`). Task Scheduler is admin-gated on this box, so Startup folder is the mechanism. |
+| Operations | ✅ **all 25 agents supervised + auto-start 2026-08-05** — `scripts/supervise-all-agents.js` (`npm run blocks:watch:all`) runs one watchdog per agent (crash-restart with exponential backoff, PID-locked, per-agent logs) and the whole network boots at logon via the Windows Startup folder entry (`BlocksAgentNetwork.cmd`). Task Scheduler is admin-gated on this box, so Startup folder is the mechanism. |
 
 The unit economics are already good (≈100% margin). Growth = more users, and
 users come from **capability breadth** (more agents/data) and **discovery**

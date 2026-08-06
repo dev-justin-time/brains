@@ -14,6 +14,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { KnowledgeBase } from '../ada/engine.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const CORPUS = path.join(__dirname, '..', 'public', 'graph_data.json')
@@ -90,37 +91,24 @@ function makeEntry(n, domain) {
   }
 }
 
-// Quick grounding self-check: run probe queries through the token-intersection
-// search (the exact mechanism answerAdaSyndicate uses) and report how many find
-// papers. Demonstrates that LLM_GROUNDED is now the norm, not LLM_FALLBACK.
-function probe(entries) {
-  const textOf = e => `${e.topic} ${e.concept} ${e.paper_title} ${e.abstract}`.toLowerCase()
-  const search = (q, domain) => {
-    const qTerms = new Set(q.toLowerCase().replace(/[,.]/g, '').split(/\s+/).filter(Boolean))
-    let best = 0
-    for (const e of entries) {
-      if (e.domain !== domain) continue
-      const pool = new Set(textOf(e).split(/\s+/).filter(Boolean))
-      let score = 0
-      for (const t of qTerms) if (pool.has(t)) score++
-      if (score > best) best = score
-    }
-    return best > 1
-  }
-  const probes = [
-    ['How can EEG neurofeedback reduce anxiety in patients?', 'Psychology'],
-    ['What deep learning models classify motor imagery?', 'Psychology'],
-    ['How is sleep quality decoded from EEG signals?', 'Psychology'],
-    ['Are adversarial attacks a real threat to brain-computer interfaces?', 'Game Theory'],
-    ['How does federated learning improve cross-subject generalization?', 'Game Theory'],
-    ['What are the neuroethics of sharing private brain data?', 'Philosophy'],
-    ['Does active inference explain consciousness and agency?', 'Philosophy'],
-    ['How do functional connectivity networks change in stroke rehabilitation?', 'Psychology'],
-  ]
-  const grounded = probes.filter(([q, d]) => search(q, d)).length
+// Quick grounding self-check: run probe queries through the ACTUAL
+// KnowledgeBase.search on the freshly written file (the exact mechanism
+// answerAdaSyndicate uses) and report how many find papers. Demonstrates that
+// LLM_GROUNDED is now the norm, not LLM_FALLBACK — and shows per-domain
+// coverage honestly (Philosophy is corpus-starved: the corpus has almost no
+// ethics/consciousness papers, so its coverage is thin by design).
+function probe(probes, kb) {
+  const grounded = probes.filter(([q, d]) => kb.search(q, d, 3).length > 0).length
   console.log(`Grounding probe: ${grounded}/${probes.length} representative queries find papers (LLM_GROUNDED norm)`)
   for (const [q, d] of probes) {
-    console.log(`  [${search(q, d) ? 'GROUNDED' : 'FALLBACK'}] (${d}) ${q}`)
+    console.log(`  [${kb.search(q, d, 3).length > 0 ? 'GROUNDED' : 'FALLBACK'}] (${d}) ${q}`)
+  }
+  const byDomain = {}
+  for (const [q, d] of probes) (byDomain[d] = byDomain[d] || []).push(q)
+  for (const d of Object.keys(byDomain)) {
+    const qs = byDomain[d]
+    const ok = qs.filter(q => kb.search(q, d, 3).length > 0).length
+    console.log(`  coverage ${d}: ${ok}/${qs.length} probes grounded (${ok / qs.length * 100 | 0}%)`)
   }
 }
 
@@ -157,7 +145,16 @@ function main() {
   for (const e of all) byDomain[e.domain] = (byDomain[e.domain] || 0) + 1
   console.log(`Wrote ${all.length} entries to ${OUT} (${head.length} sample + ${entries.length} corpus, ${dupes} duplicate titles)`)
   console.log('Domain split:', JSON.stringify(byDomain))
-  probe(all)
+  probe([
+    ['How can EEG neurofeedback reduce anxiety in patients?', 'Psychology'],
+    ['What deep learning models classify motor imagery?', 'Psychology'],
+    ['How is sleep quality decoded from EEG signals?', 'Psychology'],
+    ['Are adversarial attacks a real threat to brain-computer interfaces?', 'Game Theory'],
+    ['How does federated learning improve cross-subject generalization?', 'Game Theory'],
+    ['What are the neuroethics of sharing private brain data?', 'Philosophy'],
+    ['Does active inference explain consciousness and agency?', 'Philosophy'],
+    ['How do functional connectivity networks change in stroke rehabilitation?', 'Psychology'],
+  ], new KnowledgeBase(OUT))
 }
 
 main()
