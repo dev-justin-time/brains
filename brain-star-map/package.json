@@ -36,6 +36,10 @@
     "blocks:citation:test": "node blocks/test-citationhunter.mjs",
     "blocks:code:test": "node blocks/test-codesuggester.mjs",
     "blocks:updates:test": "node blocks/test-paperupdates.mjs",
+    "blocks:ada:test": "node blocks/test-ada.mjs",
+    "blocks:ada:call": "node scripts/call-blocks-agent.mjs ada_syndicate",
+    "blocks:ada:fact": "node scripts/call-blocks-agent.mjs ada_fact_check",
+    "blocks:ada:harvest": "node scripts/call-blocks-agent.mjs ada_harvest",
     "blocks:artifact:dump": "node blocks/verify-full-artifact.mjs",
     "blocks:demo:call": "node scripts/call-blocks-agent.mjs star_map_demo",
     "blocks:watch:all": "node scripts/supervise-all-agents.js"

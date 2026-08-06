@@ -688,6 +688,150 @@ function paperUpdatesCard() {
   }
 }
 
+// ada_syndicate — the ADA Protocol engine as an agent: 15 reasoning personas
+// (security sweep -> cache -> knowledge base -> persona synthesis). Streams.
+function adaSyndicateCard() {
+  return card({
+    agentName: 'ada_syndicate',
+    displayName: 'ADA Syndicate — 15 Reasoning Personas',
+    description:
+      'The ADA Protocol Autonomous Syndicate: routes your question to one of 15 reasoning personas ' +
+      '(bias mitigation, ethics/alignment, incentive design, paradoxes, long-term forecasting, neurodivergent ' +
+      'translation, preregistration, and more). Runs a security sweep, serves from a semantic cache, grounds ' +
+      'the answer in the built-in knowledge base, then the persona synthesizes a cited reply. ' +
+      'Pass an optional agent_id to pick a persona directly (e.g. "incentive_architect"); otherwise it auto-routes.',
+    ioExtra: {
+      inputs: [QUESTION_INPUT, {
+        id: 'agent_id',
+        description: 'Optional persona to route to: one of bias_mitigator, alignment_auditor, incentive_architect, epistemic_humility, nudge_designer, paradox_resolver, trauma_analyst, ontology_mapper, adversarial_sim, longterm_forecaster, neuro_translator, resource_allocator, consensus_builder, semiotics_decoder, prereg_enforcer (default: auto-route by intent)',
+        contentType: 'text/plain',
+        required: false,
+        example: 'incentive_architect',
+      }],
+      outputs: [...OUTPUTS, {
+        id: 'ada',
+        description: 'ADA protocol metadata as structured JSON (status: BLOCKED / CACHE_HIT / LLM_GROUNDED / LLM_FALLBACK, persona, context_used, threats)',
+        contentType: 'application/json',
+        guaranteed: false,
+        schema: { type: 'object' },
+      }],
+    },
+    tags: [
+      {
+        id: 'ada-syndicate',
+        name: 'ADA Protocol Syndicate',
+        description: '15 reasoning personas grounded in a knowledge base, cached, security-swept',
+        examples: ['incentive_architect: how do I stop perverse incentives in an LLM marketplace?', 'Analyze this policy for cognitive bias and alignment risks'],
+      },
+    ],
+  })
+}
+
+// ada_fact_check — LLM-free DOI retraction / validity check.
+function adaFactCheckCard() {
+  return {
+    identity: {
+      agentName: 'ada_fact_check',
+      displayName: 'ADA Fact Check — DOI Validity',
+      description:
+        'Checks a DOI (or a paper title from the ADA knowledge base) for retraction / validity status. ' +
+        'LLM-free and instant. Heuristic check: flags known retracted DOIs and "retracted" markers; it is not ' +
+        'an external registry lookup yet.',
+      version: '1.0.0',
+      provider: { organization: 'Brain Citation Star Map' },
+    },
+    capabilities: { taskKinds: ['request'] },
+    io: {
+      inputs: [{
+        id: 'question',
+        description: 'A DOI to check (e.g. "10.1103/PhysRevE.112") or a paper title from the ADA knowledge base',
+        contentType: 'text/plain',
+        required: true,
+        example: '10.1103/PhysRevE.112',
+      }],
+      outputs: [
+        {
+          id: 'answer',
+          description: 'Retraction / validity status of the DOI',
+          contentType: 'text/plain',
+          guaranteed: true,
+          schema: { type: 'string' },
+        },
+        {
+          id: 'sources',
+          description: 'The matching knowledge-base paper, when found, as structured JSON',
+          contentType: 'application/json',
+          guaranteed: false,
+          schema: { type: 'array' },
+        },
+      ],
+    },
+    // No streams block — LLM-free instant answers.
+    tags: [
+      ...COMMON_TAGS,
+      {
+        id: 'ada-fact-check',
+        name: 'DOI Fact Check',
+        description: 'Retraction / validity heuristic for DOIs and ADA knowledge-base papers',
+        examples: ['Check 10.1103/PhysRevE.112', 'Is the Active Inference social coordination paper valid?'],
+      },
+    ],
+    runtime: RUNTIME,
+  }
+}
+
+// ada_harvest — the Paper Agent: live arXiv scrape (LLM-free).
+function adaHarvestCard() {
+  return {
+    identity: {
+      agentName: 'ada_harvest',
+      displayName: 'ADA Harvest — arXiv Paper Agent',
+      description:
+        'The ADA Syndicate Paper Agent: scrapes arXiv for the NEWEST papers on a topic and returns them ' +
+        'formatted for the star map (title, authors, year, abstract, URL). LLM-free, live arXiv API.',
+      version: '1.0.0',
+      provider: { organization: 'Brain Citation Star Map' },
+    },
+    capabilities: { taskKinds: ['request'] },
+    io: {
+      inputs: [{
+        id: 'topic',
+        description: 'A topic keyword or phrase for the arXiv search (e.g. "quantum game theory")',
+        contentType: 'text/plain',
+        required: true,
+        example: 'mechanism design',
+      }],
+      outputs: [
+        {
+          id: 'answer',
+          description: 'List of the newest harvested papers with links',
+          contentType: 'text/plain',
+          guaranteed: true,
+          schema: { type: 'string' },
+        },
+        {
+          id: 'sources',
+          description: 'Harvested papers as structured JSON (id, title, authors, year, abstract, url)',
+          contentType: 'application/json',
+          guaranteed: false,
+          schema: { type: 'array' },
+        },
+      ],
+    },
+    // No streams block — LLM-free instant answers.
+    tags: [
+      ...COMMON_TAGS,
+      {
+        id: 'ada-harvest',
+        name: 'arXiv Paper Harvest',
+        description: 'Live scrape of the newest arXiv papers on a topic, star-map formatted',
+        examples: ['Harvest the newest papers on mechanism design', 'Get recent arXiv papers on AI ethics'],
+      },
+    ],
+    runtime: RUNTIME,
+  }
+}
+
 function routerCard() {
   return card({
     agentName: 'router',
@@ -759,6 +903,9 @@ function main() {
     codeSuggesterCard(),
     paperFeedCard(),
     paperUpdatesCard(),
+    adaSyndicateCard(),
+    adaFactCheckCard(),
+    adaHarvestCard(),
     routerCard(),
     orchestratorCard(),
     ...roster.map(expertCard),

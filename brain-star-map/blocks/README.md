@@ -74,7 +74,7 @@ match the actual database — the same data the web app visualizes.
 
 | Blocks concept | Implementation |
 |---|---|
-| **Agent** | 22 agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`) + 1 datasets directory (`dataset_finder`) + 1 citation-style (`citation_hunter`) + 1 structured literature review (`lit_review`) + 1 graph reasoning (`graph_explorer`) + 1 clinical translator + 1 code skeleton (`code_suggester`) + 1 grant writer + 2 pipe feeds (`paper_feed` corpus, `paper_updates` live arXiv), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
+| **Agent** | 25 agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`) + 1 datasets directory (`dataset_finder`) + 1 citation-style (`citation_hunter`) + 1 structured literature review (`lit_review`) + 1 graph reasoning (`graph_explorer`) + 1 clinical translator + 1 code skeleton (`code_suggester`) + 1 grant writer + 2 pipe feeds (`paper_feed` corpus, `paper_updates` live arXiv) + the ADA Syndicate trio (`ada_syndicate` 15-persona reasoning council, `ada_fact_check` DOI validity, `ada_harvest` arXiv paper agent), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
 | **Agent card** | `agent-card.json` per agent — identity, capabilities, io, streams, tags, runtime (see below). |
 | **Task (request)** | Each card declares `capabilities.taskKinds: ["request"]` — single question in, answer out. |
 | **requestParts / partId** | Input declared as `io.inputs[].id = "question"`. Callers send `requestParts: [{ partId: "question", text: "…" }]`. A missing/mismatched part fails the task fast (`failed` state). |
@@ -268,7 +268,7 @@ Startup folder at every logon:
 Verify the whole network is supervised:
 
 ```bash
-ls blocks/logs/*.child.pid | wc -l     # 22 = one live agent per card
+ls blocks/logs/*.child.pid | wc -l     # 25 = one live agent per card
 # crash-sim: kill every agent at once, watchdogs relaunch all of them
 # taskkill //F //IM blocks.exe && sleep 12 && ls blocks/logs/*.child.pid | wc -l
 ```
@@ -698,17 +698,54 @@ npm run blocks:updates:test              # offline harness (fake arXiv fetcher)
 npm run blocks:pipe:call -- paper_updates "brain-computer interface" 1
 ```
 
+## ADA Syndicate — 15 reasoning personas + infra meta-agents (live)
+
+The ADA Protocol Autonomous Syndicate backend was ported from Python to this
+Node stack and wired into the shared handler (`blocks/lib/ada.js` + the `ada/`
+module). All 15 personas, the ADA cache, the knowledge base, and the 5 infra
+meta-agents are live as three new agents:
+
+- **`ada_syndicate`** ($0.02) — the ADA Protocol engine: SENTINEL security
+  sweep (prompt-injection + PII, blocks unsafe queries) → semantic cache
+  (MD5 + 24h TTL, `CACHE_HIT` skips the LLM) → knowledge-base grounding
+  (`ada/knowledge_base.json`, token-intersection retrieval, domain-filtered by
+  persona) → persona routing (explicit `agent_id` or auto-route by intent) →
+  persona synthesis (streams, local LLM; deterministic retrieval fallback
+  when no model). Artifacts: `answer` + `sources` + structured `ada.json`
+  (`{ status: BLOCKED|CACHE_HIT|LLM_GROUNDED|LLM_FALLBACK, persona,
+  context_used, threats }`).
+- **`ada_fact_check`** ($0.02, LLM-free) — DOI retraction / validity heuristic
+  (honest: not an external registry lookup yet); matches KB paper titles too.
+- **`ada_harvest`** ($0.02, LLM-free) — the Paper Agent: live arXiv scrape
+  (reuses `blocks/lib/arxiv.js`), star-map formatted (id, title, authors,
+  year, abstract, url).
+
+The remaining infra meta-agents are folded into the existing agents they
+duplicate: `discoverBridges` (betweenness bridges) matches `graph_explorer`,
+`harvest` matches `paper_updates`, and `dataAdvise` is available in
+`ada/infra.js` for internal use. The 15 personas live in `ada/experts.js` with
+keyword intent-routing; the KB (`ada/knowledge_base.json`) holds the 5 built-in
+papers from the original codebase.
+
+```bash
+npm run blocks:ada:test      # offline contract harness (9 checks)
+npm run blocks:ada:call      # live: ada_syndicate
+npm run blocks:ada:fact      # live: ada_fact_check
+npm run blocks:ada:harvest   # live: ada_harvest
+```
+
 ## Pricing — live agents are paid ($0.02/$0.10)
 
-21 paid agents are published **public + paid** on the real network: seventeen
+24 paid agents are published **public + paid** on the real network: twenty
 (router, orchestrator, six experts, `sota_tracker`, `dataset_finder`,
 `citation_hunter`, `graph_explorer`, `clinical_translator`, `code_suggester`,
-and the demo trio) at a flat **$0.02** per task, two premium agents —
-`lit_review` and `grant_writer` — at **$0.10/task** (multi-hop research +
-synthesis work), and two pipe feeds — `paper_feed` and `paper_updates` — at
-**$0.02/minute**. `star_map_demo` is the only **free** agent. All paid agents
-carry **3 free trial tasks** (or minutes) per consumer organization so anyone
-can still try before paying. You keep 85%, Blocks takes 15% (Stripe).
+the ADA trio — `ada_syndicate`, `ada_fact_check`, `ada_harvest` — and the
+demo trio) at a flat **$0.02** per task, two premium agents — `lit_review` and
+`grant_writer` — at **$0.10/task** (multi-hop research + synthesis work), and
+two pipe feeds — `paper_feed` and `paper_updates` — at **$0.02/minute**.
+`star_map_demo` is the only **free** agent. All paid agents carry **3 free
+trial tasks** (or minutes) per consumer organization so anyone can still try
+before paying. You keep 85%, Blocks takes 15% (Stripe).
 
 ```bash
 # Request agent (per task)
@@ -730,11 +767,12 @@ Windows Startup folder entry (`BlocksAgentNetwork.cmd`).
 ## Web UI — deployable research console (`ui/`)
 
 `ui/` is a static webapp scaffolded with `blocks init --mode webapp` and
-customized into a star-map themed research console exposing **all 22 agents**
+customized into a star-map themed research console exposing **all 25 agents**
 (router, orchestrator, six experts, `paper_feed`, `paper_updates`,
 `star_map_demo`, `sota_tracker`, `dataset_finder`, `citation_hunter`,
 `lit_review`, `graph_explorer`, `clinical_translator`, `grant_writer`,
-`code_suggester`, and the three A2A demo agents).
+`code_suggester`, the ADA trio — `ada_syndicate`, `ada_fact_check`,
+`ada_harvest` — and the three A2A demo agents).
 
 - **Live**: deployed to Cloudflare Pages at https://ui-c7w.pages.dev —
   visitors sign in with a Blocks account and the console calls the agents.
@@ -746,7 +784,7 @@ customized into a star-map themed research console exposing **all 22 agents**
 - **Data-driven agent config**: one `AGENTS` table drives the nav chips, input
   fields, and artifact rendering (answer text + styled `[n]` citation markers,
   sources as clickable arXiv cards, orchestrator `report` as pretty JSON).
-- **All 22 agents callable**: switch agent via the chips, sign in once
+- **All 25 agents callable**: switch agent via the chips, sign in once
   (`signInAndGetClients`), and each section shows its card's inputs/streams.
 - **Quick actions**: a showcase strip of one-click example tasks (A2A
 deep-dive, SOTA leaderboard, dataset finder, graph explorer, PyTorch

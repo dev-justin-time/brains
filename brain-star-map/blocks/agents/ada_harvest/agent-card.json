@@ -1,0 +1,81 @@
+{
+  "identity": {
+    "agentName": "ada_harvest",
+    "displayName": "ADA Harvest — arXiv Paper Agent",
+    "description": "The ADA Syndicate Paper Agent: scrapes arXiv for the NEWEST papers on a topic and returns them formatted for the star map (title, authors, year, abstract, URL). LLM-free, live arXiv API.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    },
+    "webApps": [
+      {
+        "url": "https://ui-c7w.pages.dev",
+        "label": "ui"
+      }
+    ]
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "topic",
+        "description": "A topic keyword or phrase for the arXiv search (e.g. \"quantum game theory\")",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "mechanism design"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "List of the newest harvested papers with links",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "Harvested papers as structured JSON (id, title, authors, year, abstract, url)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array"
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "ada-harvest",
+      "name": "arXiv Paper Harvest",
+      "description": "Live scrape of the newest arXiv papers on a topic, star-map formatted",
+      "examples": [
+        "Harvest the newest papers on mechanism design",
+        "Get recent arXiv papers on AI ethics"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

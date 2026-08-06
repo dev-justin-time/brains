@@ -1,0 +1,81 @@
+{
+  "identity": {
+    "agentName": "ada_fact_check",
+    "displayName": "ADA Fact Check — DOI Validity",
+    "description": "Checks a DOI (or a paper title from the ADA knowledge base) for retraction / validity status. LLM-free and instant. Heuristic check: flags known retracted DOIs and \"retracted\" markers; it is not an external registry lookup yet.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    },
+    "webApps": [
+      {
+        "url": "https://ui-c7w.pages.dev",
+        "label": "ui"
+      }
+    ]
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "A DOI to check (e.g. \"10.1103/PhysRevE.112\") or a paper title from the ADA knowledge base",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "10.1103/PhysRevE.112"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "Retraction / validity status of the DOI",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "The matching knowledge-base paper, when found, as structured JSON",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array"
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "ada-fact-check",
+      "name": "DOI Fact Check",
+      "description": "Retraction / validity heuristic for DOIs and ADA knowledge-base papers",
+      "examples": [
+        "Check 10.1103/PhysRevE.112",
+        "Is the Active Inference social coordination paper valid?"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

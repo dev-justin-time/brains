@@ -20,6 +20,9 @@
     "clinical_translator",
     "grant_writer",
     "code_suggester",
+    "ada_syndicate",
+    "ada_fact_check",
+    "ada_harvest",
     "my_echo",
     "my_adder",
     "my_orchestrator"

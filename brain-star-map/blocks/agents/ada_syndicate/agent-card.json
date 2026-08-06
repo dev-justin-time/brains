@@ -1,0 +1,119 @@
+{
+  "identity": {
+    "agentName": "ada_syndicate",
+    "displayName": "ADA Syndicate — 15 Reasoning Personas",
+    "description": "The ADA Protocol Autonomous Syndicate: routes your question to one of 15 reasoning personas (bias mitigation, ethics/alignment, incentive design, paradoxes, long-term forecasting, neurodivergent translation, preregistration, and more). Runs a security sweep, serves from a semantic cache, grounds the answer in the built-in knowledge base, then the persona synthesizes a cited reply. Pass an optional agent_id to pick a persona directly (e.g. \"incentive_architect\"); otherwise it auto-routes.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    },
+    "webApps": [
+      {
+        "url": "https://ui-c7w.pages.dev",
+        "label": "ui"
+      }
+    ]
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "A research question about the brain-technology corpus (citations returned as [n])",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "What are the best EEG motor-imagery decoding methods?"
+      },
+      {
+        "id": "agent_id",
+        "description": "Optional persona to route to: one of bias_mitigator, alignment_auditor, incentive_architect, epistemic_humility, nudge_designer, paradox_resolver, trauma_analyst, ontology_mapper, adversarial_sim, longterm_forecaster, neuro_translator, resource_allocator, consensus_builder, semiotics_decoder, prereg_enforcer (default: auto-route by intent)",
+        "contentType": "text/plain",
+        "required": false,
+        "example": "incentive_architect"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "The agent’s answer, citing corpus papers as [n]",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "Cited papers as structured JSON (title, year, arXiv URL)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "year": {
+                "type": "number"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "ada",
+        "description": "ADA protocol metadata as structured JSON (status: BLOCKED / CACHE_HIT / LLM_GROUNDED / LLM_FALLBACK, persona, context_used, threats)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "object"
+        }
+      }
+    ]
+  },
+  "streams": {
+    "_default": {
+      "direction": "outbound",
+      "format": "bytes",
+      "description": "Answer text streamed token-by-token as it is generated",
+      "contentType": "text/plain"
+    }
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "ada-syndicate",
+      "name": "ADA Protocol Syndicate",
+      "description": "15 reasoning personas grounded in a knowledge base, cached, security-swept",
+      "examples": [
+        "incentive_architect: how do I stop perverse incentives in an LLM marketplace?",
+        "Analyze this policy for cognitive bias and alignment risks"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

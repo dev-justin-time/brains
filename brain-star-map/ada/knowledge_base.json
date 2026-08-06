@@ -1,0 +1,47 @@
+[
+  {
+    "domain": "Psychology",
+    "topic": "Predictive Processing",
+    "concept": "Active Inference / Free Energy Principle",
+    "paper_title": "Active Inference in Multi-Agent Social Coordination",
+    "year": 2025,
+    "abstract": "Demonstrates how human groups minimize collective 'free energy' (surprise) through implicit communication, modeling social norms as priors rather than rules.",
+    "doi": "10.1016/j.cogsys.2025.01"
+  },
+  {
+    "domain": "Game Theory",
+    "topic": "Mechanism Design",
+    "concept": "Algorithmic Contract Theory with LLMs",
+    "paper_title": "Mechanism Design with Bounded-Rational LLM Agents",
+    "year": 2025,
+    "abstract": "Introduces a new equilibrium concept where agents are not perfectly rational utility maximizers, but LLMs subject to prompt-injection and context-window constraints.",
+    "doi": "10.1145/3580305"
+  },
+  {
+    "domain": "Philosophy",
+    "topic": "AI Ethics",
+    "concept": "Latent Space Moral Topology",
+    "paper_title": "The Epistemology of Algorithmic Agency: Mapping Moral Manifolds",
+    "year": 2025,
+    "abstract": "Argues that ethical alignment cannot be rule-based but must be topological; moral failures in AI occur when traversing 'blind spots' in high-dimensional latent spaces.",
+    "doi": "10.1086/729104"
+  },
+  {
+    "domain": "Psychology",
+    "topic": "Behavioral Economics",
+    "concept": "Dual-Process Theory in AI",
+    "paper_title": "Bounded Rationality in LLMs: System 1 vs System 2 Prompting",
+    "year": 2025,
+    "abstract": "Proves that LLMs exhibit 'System 1' (heuristic) biases in zero-shot prompts, requiring specific 'System 2' cognitive forcing functions to achieve rational economic utility.",
+    "doi": "10.1037/rev0000412"
+  },
+  {
+    "domain": "Game Theory",
+    "topic": "Evolutionary Dynamics",
+    "concept": "Quantum Prisoner's Dilemma",
+    "paper_title": "Evolutionary Stable Strategies in Quantum Prisoner's Dilemma",
+    "year": 2026,
+    "abstract": "Shows that introducing quantum superposition into classical evolutionary games creates new Evolutionary Stable Strategies (ESS) that eliminate the tragedy of the commons.",
+    "doi": "10.1103/PhysRevE.112"
+  }
+]

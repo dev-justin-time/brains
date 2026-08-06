@@ -113,7 +113,7 @@
   // The agent set is the scope of the embed-auth session (partition key), so
   // adding an agent here means re-consenting once; the refresh token then
   // covers the whole set for 24h.
-  const AGENT_IDS = ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "expert_deep_learning", "expert_neural_decoding", "expert_clinical_apps", "expert_other", "paper_feed", "paper_updates", "star_map_demo", "sota_tracker", "dataset_finder", "citation_hunter", "graph_explorer", "lit_review", "clinical_translator", "grant_writer", "code_suggester", "my_echo", "my_adder", "my_orchestrator"];
+  const AGENT_IDS = ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "expert_deep_learning", "expert_neural_decoding", "expert_clinical_apps", "expert_other", "paper_feed", "paper_updates", "star_map_demo", "sota_tracker", "dataset_finder", "citation_hunter", "graph_explorer", "lit_review", "clinical_translator", "grant_writer", "code_suggester", "ada_syndicate", "ada_fact_check", "ada_harvest", "my_echo", "my_adder", "my_orchestrator"];
 
   let clients = null;
 
@@ -461,6 +461,47 @@
       ]
     },
     {
+      id: 'ada_syndicate',
+      label: 'ADA Syndicate (15 personas)',
+      tagline: 'Routes your question to one of 15 reasoning personas — bias, ethics, incentives, paradoxes, long-term forecasting, neurodivergent translation, preregistration & more. Security-swept, cached, knowledge-base grounded.',
+      color: '#e879f9',
+      kind: 'research',
+      outputs: ['answer', 'sources', 'ada'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 3, hint: 'Ask anything; the syndicate auto-routes to the best persona by intent.',
+          default: 'How do I stop perverse incentives in an LLM marketplace?' },
+        { id: 'agent_id', label: 'Persona (optional)', rows: 1, hint: 'One of: bias_mitigator, alignment_auditor, incentive_architect, epistemic_humility, nudge_designer, paradox_resolver, trauma_analyst, ontology_mapper, adversarial_sim, longterm_forecaster, neuro_translator, resource_allocator, consensus_builder, semiotics_decoder, prereg_enforcer. Empty = auto-route.',
+          default: '' }
+      ]
+    },
+    {
+      id: 'ada_fact_check',
+      label: 'ADA Fact Check',
+      tagline: 'LLM-free — checks a DOI (or ADA knowledge-base paper) for retraction / validity status.',
+      color: '#fbbf24',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: false,
+      inputs: [
+        { id: 'question', label: 'DOI or paper title', rows: 2, hint: 'A DOI (e.g. 10.1103/PhysRevE.112) or an ADA knowledge-base paper title.',
+          default: '10.1103/PhysRevE.112' }
+      ]
+    },
+    {
+      id: 'ada_harvest',
+      label: 'ADA Harvest (arXiv)',
+      tagline: 'LLM-free — the Paper Agent: scrapes the NEWEST arXiv papers on a topic, star-map formatted.',
+      color: '#4ade80',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: false,
+      inputs: [
+        { id: 'topic', label: 'Topic', rows: 2, hint: 'Keyword/phrase for the live arXiv search.',
+          default: 'mechanism design' }
+      ]
+    },
+    {
       id: 'paper_updates',
       label: 'Paper Updates (live arXiv)',
       tagline: 'Pipe agent — streams the NEWEST arXiv submissions on a topic as live events; fresh papers picked up live.',
@@ -635,6 +676,7 @@
     { agent: 'dataset_finder', label: 'Find a dataset', question: 'Which dataset should I use for cross-subject motor imagery decoding?', icon: '🗂', tag: 'LLM-free' },
     { agent: 'graph_explorer', label: 'Graph explorer', question: 'Most central papers in Connectomics', icon: '✦', tag: 'LLM-free' },
     { agent: 'code_suggester', label: 'PyTorch skeleton', question: 'Sketch a CNN-LSTM architecture for motor imagery decoding', icon: '⌘', tag: 'LLM' },
+    { agent: 'ada_syndicate', label: 'ADA Syndicate', question: 'How do I stop perverse incentives in an LLM marketplace?', icon: '🧠', tag: '15 personas' },
     { agent: 'star_map_demo', label: 'Free demo', question: 'Show me the demo', icon: '✧', tag: 'FREE · no funds needed' },
   ];
 
@@ -993,7 +1035,8 @@
       case 'review':
       case 'draft':
       case 'subgraph':
-      case 'skeleton': {
+      case 'skeleton':
+      case 'ada': {
         // Structured JSON artifacts (orchestrator report, lit_review review,
         // grant draft, graph subgraph, code skeleton) share the report panel.
         reportArea.hidden = false;

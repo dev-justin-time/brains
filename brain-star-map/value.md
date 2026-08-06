@@ -11,10 +11,10 @@
 | Asset | Detail |
 |---|---|
 | Corpus | 215 arXiv papers, 700 keyword-co-occurrence links, 6 communities (Neural Decoding, BCI & EEG, Deep Learning, Connectomics, Clinical Apps, Other) |
-| Live agents (22) | `router`, `orchestrator`, six experts, `paper_feed` + `paper_updates` (pipe, $0.02/min), `star_map_demo` (free), `sota_tracker`, `dataset_finder`, `citation_hunter`, `lit_review` ($0.10), `graph_explorer`, `clinical_translator`, `code_suggester`, `grant_writer` ($0.10), A2A trio `my_echo`/`my_adder`/`my_orchestrator` |
+| Live agents (25) | `router`, `orchestrator`, six experts, `paper_feed` + `paper_updates` (pipe, $0.02/min), `star_map_demo` (free), `sota_tracker`, `dataset_finder`, `citation_hunter`, `lit_review` ($0.10), `graph_explorer`, `clinical_translator`, `code_suggester`, `grant_writer` ($0.10), ADA trio `ada_syndicate` (15 reasoning personas) / `ada_fact_check` / `ada_harvest`, A2A trio `my_echo`/`my_adder`/`my_orchestrator` |
 | Dormant cards (4) | ✅ **published + live 2026-08-05** — `expert_clinical_apps`, `expert_deep_learning`, `expert_neural_decoding`, `expert_other` |
 | Engine | `server/` hybrid retrieval + local Ollama → **near-zero marginal cost**, LLM-free fast paths |
-| Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 21 paid agents (17 @ $0.02/task, `lit_review` + `grant_writer` @ $0.10/task, 2 pipe @ $0.02/min) + 1 free (`star_map_demo`) (85/15 split); all 22 agents supervised with boot auto-start (see Operations) |
+| Front doors | Web console **https://ui-c7w.pages.dev**, public GitHub repo, 24 paid agents (20 @ $0.02/task incl. the ADA trio, `lit_review` + `grant_writer` @ $0.10/task, 2 pipe @ $0.02/min) + 1 free (`star_map_demo`) (85/15 split); all 25 agents supervised with boot auto-start (see Operations) |
 | Operations | ✅ **all 22 agents supervised + auto-start 2026-08-05** — `scripts/supervise-all-agents.js` (`npm run blocks:watch:all`) runs one watchdog per agent (crash-restart with exponential backoff, PID-locked, per-agent logs) and the whole network boots at logon via the Windows Startup folder entry (`BlocksAgentNetwork.cmd`). Task Scheduler is admin-gated on this box, so Startup folder is the mechanism. |
 
 The unit economics are already good (≈100% margin). Growth = more users, and
@@ -146,6 +146,7 @@ users come from **capability breadth** (more agents/data) and **discovery**
 | 9 | `dataset_finder` + `code_suggester` | ✅ done 2026-08-05 | — | per-task |
 | 10 | `citation_hunter` | ✅ done 2026-08-05 | — | per-task |
 | 11 | `paper_updates` live arXiv pipe | ✅ done 2026-08-05 | — | recurring (pipe) |
+| 12 | ADA Syndicate merged + wired (`ada_syndicate`, `ada_fact_check`, `ada_harvest`) | ✅ done 2026-08-06 — 15 personas + cache + KB + 5 infra meta-agents ported from the Python backend; live @ $0.02; in console | — | per-task |
 
 **All P0 + P1 + P2 items done (2026-08-05).** The full remaining roadmap is:
 - **Per-user topic digests** on `paper_updates` (email/webhook) — the recurring

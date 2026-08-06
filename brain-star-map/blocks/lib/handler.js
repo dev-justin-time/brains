@@ -37,6 +37,7 @@ import { runGraphExplorer } from './graphexplorer.js'
 import { runClinicalTranslator } from './clinical.js'
 import { runGrantWriter } from './grantwriter.js'
 import { runCodeSuggester } from './codesuggester.js'
+import { runAdaSyndicate, runAdaFactCheck, runAdaHarvest } from './ada.js'
 
 export default async function handler(task, ctx) {
   const agentName = task?.agentName || process.env.BLOCKS_AGENT_NAME || 'router'
@@ -80,6 +81,16 @@ export default async function handler(task, ctx) {
   // subgraph, communities, shortest paths). Same contract, no stream.
   if (agentName === 'graph_explorer') {
     return runGraphExplorer(task, ctx)
+  }
+
+  // ADA Syndicate — the 15-persona reasoning council. ada_syndicate streams
+  // (LLM synthesis); ada_fact_check + ada_harvest are LLM-free, so they run
+  // before the stream setup below.
+  if (agentName === 'ada_fact_check') {
+    return runAdaFactCheck(task, ctx)
+  }
+  if (agentName === 'ada_harvest') {
+    return runAdaHarvest(task, ctx)
   }
 
   // Validate the input contract up front — a bad task fails fast (failed state)
@@ -134,6 +145,8 @@ export default async function handler(task, ctx) {
     } else if (agentName === 'code_suggester') {
       ctx?.reportStatus(`Sketching a PyTorch skeleton for "${question.slice(0, 80)}"…`)
       result = await runCodeSuggester(task, ctx, emit)
+    } else if (agentName === 'ada_syndicate') {
+      result = await runAdaSyndicate(task, ctx, emit)
     } else {
       const agent = resolveAgent(agentName)
       result = await runExpert(agent, task, ctx, emit)
@@ -181,6 +194,14 @@ export default async function handler(task, ctx) {
         mimeType: 'application/json',
         outputId: 'skeleton',
         fileName: 'skeleton.json',
+      })
+    }
+    if (result.ada) {
+      artifacts.push({
+        data: JSON.stringify(result.ada, null, 2),
+        mimeType: 'application/json',
+        outputId: 'ada',
+        fileName: 'ada.json',
       })
     }
     return { artifacts }
