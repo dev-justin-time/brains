@@ -4,6 +4,9 @@
 // (with an injected fake arXiv fetcher).
 
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { ADACache, KnowledgeBase } from '../ada/engine.js'
 import { EXPERT_REGISTRY, routePersona, resolvePersona } from '../ada/experts.js'
 import { securitySweep, factCheck } from '../ada/infra.js'
@@ -28,13 +31,31 @@ const ok = (name) => { passed++; console.log(`  ✓ ${name}`) }
 {
   console.log('KnowledgeBase')
   const kb = new KnowledgeBase()
-  assert.equal(kb.data.length, 5, '5 built-in papers')
+  // The KB is seeded from the star-map corpus: 5 original samples + 215 real
+  // arXiv papers (grown from the original 5-entry built-in dataset).
+  assert.ok(kb.data.length >= 200, `KB grown from corpus (${kb.data.length} entries)`)
+  assert.equal(kb.data[0].paper_title, 'Active Inference in Multi-Agent Social Coordination', 'original 5 sample entries preserved at the head')
+  assert.equal(kb.data[4].paper_title, 'Evolutionary Stable Strategies in Quantum Prisoner\'s Dilemma')
+  const corpus = kb.data.slice(5)
+  assert.ok(corpus.every(e => e.paper_title && e.year && e.abstract && e.abstract.length >= 50 && e.url && e.arxiv), 'corpus entries carry real title/year/abstract/arXiv url')
+  assert.ok(corpus.every(e => ['Psychology', 'Philosophy', 'Game Theory'].includes(e.domain)), 'every entry classified into a syndicate domain (domain filter reachable)')
+
   const hits = kb.search('mechanism design bounded rational llm', 'Game Theory', 3)
   assert.ok(hits.length >= 1, 'finds the mechanism-design paper')
-  assert.equal(hits[0].paper_title, 'Mechanism Design with Bounded-Rational LLM Agents')
-  const filtered = kb.search('bounded rationality system one', 'Philosophy', 3)
-  assert.equal(filtered.length, 0, 'domain filter keeps Philosophy empty of Psychology papers')
-  ok('token-intersection search + domain filter')
+  assert.equal(hits[0].paper_title, 'Mechanism Design with Bounded-Rational LLM Agents', 'sample still the top Game Theory hit (stable sort favors file order)')
+
+  // Hermetic domain-filter check on a tiny in-memory KB (independent of corpus
+  // content): Philosophy-domain search must never surface a Game Theory paper.
+  const tmpKb = path.join(os.tmpdir(), `kb-filter-${Date.now()}.json`)
+  fs.writeFileSync(tmpKb, JSON.stringify([
+    { domain: 'Game Theory', topic: 'Mechanism Design', concept: 'LLM agents', paper_title: 'Mechanism Design with LLM Agents', year: 2025, abstract: 'An abstract about mechanism design and equilibrium in markets.' },
+    { domain: 'Philosophy', topic: 'Ethics', concept: 'Moral agency', paper_title: 'The Ethics of AI', year: 2025, abstract: 'An abstract about moral philosophy and agency in machines.' },
+  ]))
+  const mk = new KnowledgeBase(tmpKb)
+  assert.equal(mk.search('mechanism design equilibrium', 'Philosophy', 3).length, 0, 'domain filter: Philosophy never returns the Game Theory paper')
+  assert.equal(mk.search('mechanism design equilibrium', 'Game Theory', 3)[0].paper_title, 'Mechanism Design with LLM Agents')
+  fs.rmSync(tmpKb, { force: true })
+  ok('token-intersection search + corpus-seeded KB + hermetic domain filter')
 }
 
 // ---------- Security sweep ----------
@@ -102,6 +123,17 @@ const ok = (name) => { passed++; console.log(`  ✓ ${name}`) }
   const platform = await answerAdaSyndicate('How should we scale our vector index storage?', null, { forceNoModel: true })
   assert.equal(platform.ada.intent, 'data_advise', 'platform-referential vector-index question routes to data agent')
   ok('discover-bridges + data-advise intents reachable (meta-agents wired)')
+}
+
+// ---------- Syndicate: LLM_GROUNDED is the norm on corpus queries ----------
+{
+  console.log('syndicate — corpus-grounded (LLM_GROUNDED norm)')
+  const r = await answerAdaSyndicate('How can EEG neurofeedback reduce anxiety in patients?', 'trauma_analyst', { forceNoModel: true })
+  assert.equal(r.ada.status, 'LLM_GROUNDED', 'corpus paper grounds the query (no more default FALLBACK)')
+  assert.ok(r.context.length >= 1, 'real corpus papers in context')
+  assert.ok(r.sources.length >= 1, 'sources artifact present')
+  assert.ok(r.sources[0].url.startsWith('https://arxiv.org/abs/'), 'corpus source links to arXiv, not a fake doi.org URL')
+  ok('real corpus papers ground typical brain-science queries')
 }
 
 // ---------- Syndicate: cache hit ----------

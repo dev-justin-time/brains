@@ -273,6 +273,18 @@ ls blocks/logs/*.child.pid | wc -l     # 25 = one live agent per card
 # taskkill //F //IM blocks.exe && sleep 12 && ls blocks/logs/*.child.pid | wc -l
 ```
 
+**Reloading from a shell.** `Start-Process`/`start` from an MSYS/bash shell still
+attaches the supervisor to that shell's console, so when the shell exits the
+console-close can hard-kill the whole tree. Launch it fully detached instead
+and verify with `tasklist` (MSYS `ps` can't see cross-session processes and
+falsely reports the supervisor as dead):
+
+```bash
+wscript scripts\start-supervisor.vbs   # hidden, detached (survives the shell)
+tasklist //FI "PID eq $(cat blocks/logs/supervisor.pid)"   # 1 = alive
+tasklist //FI "IMAGENAME eq blocks.exe" | grep -c blocks    # 25 = all agents up
+```
+
 If you later get an admin shell, register the same watchdog as a proper
 scheduled task instead of the Startup folder:
 
@@ -730,11 +742,19 @@ The remaining infra meta-agents are folded into the existing agents they
 duplicate: `discoverBridges` (betweenness bridges) matches `graph_explorer`,
 `harvest` matches `paper_updates`, and `dataAdvise` is available in
 `ada/infra.js` for internal use. The 15 personas live in `ada/experts.js` with
-keyword intent-routing; the KB (`ada/knowledge_base.json`) holds the 5 built-in
-papers from the original codebase.
+keyword intent-routing.
+
+The KB (`ada/knowledge_base.json`) is **seeded from the star-map corpus**: the
+original 5 built-in papers plus 215 real arXiv papers from
+`public/graph_data.json` (title/year/abstract + live arXiv URL), each classified
+into one of the three syndicate domains (`Psychology` / `Philosophy` /
+`Game Theory`) so the persona domain filter never excludes them — grounding
+probes show LLM_GROUNDED is now the norm instead of LLM_FALLBACK. Rebuild it
+with `npm run data:ada-kb` (`scripts/build-ada-kb.js`).
 
 ```bash
-npm run blocks:ada:test      # offline contract harness (9 checks)
+npm run data:ada-kb          # reseed ada/knowledge_base.json from the corpus
+npm run blocks:ada:test      # offline contract harness (11 checks)
 npm run blocks:ada:call      # live: ada_syndicate
 npm run blocks:ada:fact      # live: ada_fact_check
 npm run blocks:ada:harvest   # live: ada_harvest

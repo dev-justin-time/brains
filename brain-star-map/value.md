@@ -147,6 +147,7 @@ users come from **capability breadth** (more agents/data) and **discovery**
 | 10 | `citation_hunter` | ✅ done 2026-08-05 | — | per-task |
 | 11 | `paper_updates` live arXiv pipe | ✅ done 2026-08-05 | — | recurring (pipe) |
 | 12 | ADA Syndicate merged + wired (`ada_syndicate`, `ada_fact_check`, `ada_harvest`) | ✅ done 2026-08-06 — 15 personas + cache + KB + 5 infra meta-agents ported from the Python backend; live @ $0.02; in console | — | per-task |
+| 13 | ADA KB seeded from the star-map corpus | ✅ done 2026-08-06 — `ada/knowledge_base.json` grown 5 → 220 (215 real arXiv papers, classified into the 3 syndicate domains); `npm run data:ada-kb` rebuilds; grounding probes 7/8 → LLM_GROUNDED is now the norm, cutting LLM calls + lifting answer quality | Low | cost + quality |
 
 **All P0 + P1 + P2 items done (2026-08-05).** The full remaining roadmap is:
 - **Per-user topic digests** on `paper_updates` (email/webhook) — the recurring

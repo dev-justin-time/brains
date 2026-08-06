@@ -34,12 +34,14 @@ Answer the user's query from your persona's grounding instruction using the ADA 
 Cite grounded papers by title and year exactly as given. If the CONTEXT is empty or insufficient, say so plainly
 and prefix your answer with "[Fallback Mode]". Never invent citations, DOIs, or paper titles.`
 
-// Map a knowledge-base entry to the shared sources artifact shape.
+// Map a knowledge-base entry to the shared sources artifact shape. Corpus
+// entries carry a live arXiv `url` (public/graph_data.json has no DOIs); the
+// original sample entries carry a `doi` and fall back to doi.org links.
 function toSource(entry) {
   return {
     title: entry.paper_title,
     year: entry.year,
-    url: `https://doi.org/${entry.doi}`,
+    url: entry.url || (entry.doi ? `https://doi.org/${entry.doi}` : null),
     domain: entry.domain,
   }
 }
@@ -241,8 +243,13 @@ export async function runAdaFactCheck(task, ctx) {
 
   const check = factCheck(doi)
   const source = matched ? toSource(matched.entry) : null
+  // Corpus entries have no DOI; surface their arXiv reference instead so a
+  // title-matched paper doesn't print "(not found)". The status stays UNKNOWN
+  // (factCheck(undefined)) — honest: we know the paper exists, not its
+  // retraction record.
+  const doiLabel = doi || (matched?.entry?.url ? `arxiv: ${matched.entry.url}` : '(not found in the question or knowledge base)')
   const lines = [
-    `DOI: ${doi || '(not found in the question or knowledge base)'}`,
+    `DOI: ${doiLabel}`,
     `Status: ${check.status}`,
   ]
   if (check.warning) lines.push(check.warning)

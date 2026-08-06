@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "data": "node scripts/build-data.js",
+    "data:ada-kb": "node scripts/build-ada-kb.js",
     "build-agent-db": "node scripts/build-agent-db.js",
     "serve": "node server/index.js",
     "blocks:cards": "node scripts/generate-blocks-cards.js",
