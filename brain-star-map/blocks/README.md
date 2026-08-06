@@ -722,6 +722,11 @@ they pick up the paid registry state. Consumers keep the same SDK calls — paid
 agents are charged automatically from the caller's balance. The demo trio
 (`my_echo`, `my_adder`, `my_orchestrator`) are also $0.02/task.
 
+All 22 agents run under the network supervisor (`scripts/supervise-all-agents.js`,
+`npm run blocks:watch:all` — see **4c** above): each has its own watchdog with
+crash-restart + backoff, and the whole network auto-starts at logon via the
+Windows Startup folder entry (`BlocksAgentNetwork.cmd`).
+
 ## Web UI — deployable research console (`ui/`)
 
 `ui/` is a static webapp scaffolded with `blocks init --mode webapp` and
