@@ -70,11 +70,14 @@ export function resolveAgent(agentName) {
 // ---------- streaming ----------
 
 // Create the outbound "tokens" bytes stream. Returns null when streaming is
-// unavailable (no ctx, createStream missing, or the task has no stream).
-export async function buildStream(ctx) {
-  if (!ctx?.createStream) return null
+// unavailable (no ctx, createStream missing, or the task has no stream — the
+// guide's `ctx.hasStream` opt-in check, plus a fallback for callers that
+// omit it). Extra opts (e.g. { bundleSizeBytes, maxLatencyMs } from the
+// Stream guide's request example) are passed straight through.
+export async function buildStream(ctx, opts = {}) {
+  if (!ctx?.createStream || ctx.hasStream === false) return null
   try {
-    return await ctx.createStream({ direction: 'outbound', format: 'bytes', declaredStream: '_default' })
+    return await ctx.createStream({ direction: 'outbound', format: 'bytes', declaredStream: '_default', ...opts })
   } catch {
     return null
   }

@@ -98,12 +98,24 @@ export default async function handler(task, ctx) {
   const question = extractQuestion(task)
 
   // The outbound token stream (null when the network didn't attach one).
-  const stream = await buildStream(ctx)
+  // ada_syndicate tunes buffering per the Stream guide's request example
+  // (bundleSizeBytes 2048 / maxLatencyMs 50) so persona tokens reach callers
+  // with low latency; other agents keep the SDK defaults.
+  const stream = await buildStream(
+    ctx,
+    agentName === 'ada_syndicate' ? { bundleSizeBytes: 2048, maxLatencyMs: 50 } : undefined,
+  )
 
   const emit = (evt) => {
     if (!evt) return
     switch (evt.type) {
       case 'token':
+        if (stream && evt.text) stream.write(evt.text)
+        break
+      case 'text':
+        // Whole-answer chunk for paths that don't emit tokens (cache hits,
+        // blocked, INFRA fast paths, deterministic fallback): the caller's
+        // stream stays complete even when there's no LLM synthesis.
         if (stream && evt.text) stream.write(evt.text)
         break
       case 'status':

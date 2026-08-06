@@ -48,10 +48,12 @@ function toSource(entry) {
 
 /**
  * Run the ADA Protocol for a question: security -> cache -> KB -> persona -> LLM.
- * @param {{ signal?: AbortSignal, onToken?: (t:string)=>void, forceNoModel?: boolean, cache?: ADACache, kb?: KnowledgeBase }} [opts]
+ * @param {{ signal?: AbortSignal, onToken?: (t:string)=>void, forceNoModel?: boolean, cache?: ADACache, kb?: KnowledgeBase, chatStream?: Function, hasModel?: Function }} [opts]
+ *   chatStream/hasModel are injectable (defaulting to the real Ollama client)
+ *   so the offline suite can drive the token path deterministically.
  */
 export async function answerAdaSyndicate(question, agentId, opts = {}) {
-  const { signal, onToken, forceNoModel = false, cache = adaCache, kb = adaKb } = opts
+  const { signal, onToken, forceNoModel = false, cache = adaCache, kb = adaKb, chatStream: chatStreamFn = chatStream, hasModel: hasModelFn = hasModel } = opts
   const t0 = Date.now()
 
   // 1. SECURITY SWEEP (Sentinel)
@@ -106,12 +108,12 @@ export async function answerAdaSyndicate(question, agentId, opts = {}) {
   // 5. AGENT SYNTHESIS (ADA Step 3)
   const prompt = SYNDICATE_PROMPT + '\n\n' + persona.generatePrompt(question, context)
   const messages = [systemMessage(prompt), userMessage(question)]
-  const llmAvailable = forceNoModel ? false : await hasModel(CHAT_MODEL)
+  const llmAvailable = forceNoModel ? false : await hasModelFn(CHAT_MODEL)
 
   let text = ''
   if (llmAvailable) {
     try {
-      text = onToken ? await chatStream({ messages, signal, onToken }) : await chat({ messages })
+      text = onToken ? await chatStreamFn({ messages, signal, onToken }) : await chat({ messages })
     } catch (err) {
       if (err?.name === 'AbortError' || signal?.aborted) {
         return { answer: '', partial: true, persona, context, modelUsed: true, ada: null, durationMs: Date.now() - t0 }
@@ -155,18 +157,25 @@ export async function answerAdaSyndicate(question, agentId, opts = {}) {
   }
 }
 
-export async function runAdaSyndicate(task, ctx, emit) {
+// Optional 4th param mirrors runAdaHarvest's { fetcher } DI: the offline suite
+// injects forceNoModel / a fake chatStream / fake hasModel to exercise both the
+// token path and the deterministic fallback without a live Ollama.
+export async function runAdaSyndicate(task, ctx, emit, opts = {}) {
   const question = extractQuestion(task)
   const agentPart = task?.requestParts?.find(p => p.partId === 'agent_id')
   const agentId = agentPart?.text?.trim() || null
 
   ctx?.reportStatus?.(`ADA Syndicate: routing to a persona for "${question.slice(0, 80)}"…`)
 
+  let streamed = false
   let result
   try {
     result = await answerAdaSyndicate(question, agentId, {
       signal: ctx?.cancelSignal,
-      onToken: t => emit?.({ type: 'token', text: t }),
+      onToken: t => { streamed = true; emit?.({ type: 'token', text: t }) },
+      forceNoModel: opts.forceNoModel,
+      hasModel: opts.hasModel,
+      chatStream: opts.chatStream,
     })
   } catch (err) {
     if (err?.name === 'AbortError' || ctx?.cancelSignal?.aborted || ctx?.isCancelled) {
@@ -190,6 +199,12 @@ export async function runAdaSyndicate(task, ctx, emit) {
   }
 
   emit?.({ type: 'status', message: `ADA Syndicate: ${result.ada.status} (${result.ada.intent || result.persona?.name || 'n/a'})` })
+
+  // No LLM tokens were streamed (cache hit, blocked, INFRA fast path, or the
+  // deterministic fallback): stream the whole answer once so a caller that
+  // opted into streaming always receives the text through the stream too.
+  if (!streamed && result?.answer) emit?.({ type: 'text', text: result.answer })
+
   return {
     answer: result.answer,
     sources: result.sources,

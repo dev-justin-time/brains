@@ -10,7 +10,7 @@ import path from 'node:path'
 import { ADACache, KnowledgeBase } from '../ada/engine.js'
 import { EXPERT_REGISTRY, routePersona, resolvePersona } from '../ada/experts.js'
 import { securitySweep, factCheck } from '../ada/infra.js'
-import { answerAdaSyndicate, runAdaFactCheck, runAdaHarvest } from './lib/ada.js'
+import { answerAdaSyndicate, runAdaSyndicate, runAdaFactCheck, runAdaHarvest } from './lib/ada.js'
 
 let passed = 0
 const ok = (name) => { passed++; console.log(`  ✓ ${name}`) }
@@ -137,6 +137,53 @@ const ok = (name) => { passed++; console.log(`  ✓ ${name}`) }
   assert.ok(r.sources.length >= 1, 'sources artifact present')
   assert.ok(r.sources[0].url.startsWith('https://arxiv.org/abs/'), 'corpus source links to arXiv, not a fake doi.org URL')
   ok('real corpus papers ground typical brain-science queries')
+}
+
+// ---------- Syndicate: request streaming (ctx.createStream contract) ----------
+{
+  console.log('syndicate — request streaming')
+  // Fake emit mirrors the handler's stream wiring (token -> write, text -> write).
+  const mkHarness = () => {
+    const writes = []
+    const statuses = []
+    const emit = evt => {
+      if (!evt) return
+      if (evt.type === 'token' && evt.text) writes.push(evt.text)
+      else if (evt.type === 'text' && evt.text) writes.push(evt.text)
+      else if (evt.type === 'status') statuses.push(evt.message)
+    }
+    return { writes, statuses, emit }
+  }
+
+  // Token path: an injected chatStream emits tokens; each must be forwarded to
+  // the caller's stream in order (and NOT re-streamed as a whole-text chunk).
+  {
+    const { writes, emit } = mkHarness()
+    const tokens = ['Grounded', ' answer', ' from', ' the', ' corpus', '.']
+    const fakeChat = async ({ onToken }) => {
+      let full = ''
+      for (const t of tokens) { full += t; onToken(t) }
+      return full
+    }
+    const task = { requestParts: [{ partId: 'question', text: 'How can EEG neurofeedback reduce anxiety?' }] }
+    const out = await runAdaSyndicate(task, {}, emit, { hasModel: async () => true, chatStream: fakeChat })
+    assert.equal(writes.join(''), tokens.join(''), 'tokens streamed to the caller in order')
+    assert.equal(out.meta.modelCalls, 1, 'LLM path ran (modelCalls=1)')
+    assert.ok(out.ada.status === 'LLM_GROUNDED' || out.ada.status === 'LLM_FALLBACK', 'grounding status emitted')
+    ok('LLM tokens stream token-by-token')
+  }
+
+  // Fallback path: no LLM — the whole answer is streamed once so the caller's
+  // stream is still complete (guide: stream + final artifact).
+  {
+    const { writes, emit } = mkHarness()
+    const task = { requestParts: [{ partId: 'question', text: 'How can EEG neurofeedback reduce anxiety in patients?' }] }
+    const out = await runAdaSyndicate(task, {}, emit, { forceNoModel: true })
+    assert.ok(writes.length >= 1, 'fallback answer written to the stream')
+    assert.ok(writes.join('').includes('[Fallback Mode]'), 'full fallback text streamed as one chunk')
+    assert.equal(writes.join('').length, out.answer.length, 'streamed text matches the answer artifact')
+    ok('deterministic fallback streams the full answer once')
+  }
 }
 
 // ---------- Syndicate: cache hit ----------

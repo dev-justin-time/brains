@@ -726,7 +726,12 @@ meta-agents are live as three new agents:
   → semantic cache (MD5 + 24h TTL, `CACHE_HIT` skips the LLM) → knowledge-
   base grounding (`ada/knowledge_base.json`, token-intersection retrieval,
   domain-filtered by persona) → persona routing (explicit `agent_id` or
-  auto-route by intent) → persona synthesis (streams, local LLM;
+  auto-route by intent) → persona synthesis (**request streaming**: the card
+  declares `streams._default` (outbound bytes), the handler opens it with
+  `ctx.createStream({ bundleSizeBytes: 2048, maxLatencyMs: 50 })` per the
+  Stream guide, and persona tokens are written as they're generated — cache
+  hits, INFRA fast paths, and the deterministic fallback stream the whole
+  answer once so a streaming caller always gets the text; local LLM;
   deterministic retrieval fallback when no model). Artifacts: `answer` +
   `sources` + structured `ada.json` (`{ status: BLOCKED|CACHE_HIT|
   LLM_GROUNDED|LLM_FALLBACK|INFRA, persona, context_used, threats,
