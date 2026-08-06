@@ -248,9 +248,13 @@ npm run blocks:watch:all        # → node scripts/supervise-all-agents.js
 ```
 
 It discovers agents by scanning `blocks/agents/` + `blocks/a2a-demo/` for
-`agent-card.json` (no hardcoded list — new cards are picked up automatically),
-logs to `blocks/logs/supervisor.log`, and holds `blocks/logs/supervisor.pid`.
-SIGINT/SIGTERM stops every watchdog gracefully.
+`agent-card.json` at startup (no hardcoded list — restart the supervisor after
+adding a card), logs to `blocks/logs/supervisor.log`, and holds
+`blocks/logs/supervisor.pid`. Backoff is per-agent (5s → 60s, reset after 10
+minutes of uptime); a watchdog that finds another watchdog already holding its
+agent's lock is left alone instead of restart-looping. SIGINT/SIGTERM stops
+every watchdog's process tree (taskkill /T on Windows) so no `blocks run`
+children are orphaned.
 
 **Auto-start at logon (no admin needed).** Task Scheduler registration is
 admin-gated on this machine, so the supervisor is launched from the Windows

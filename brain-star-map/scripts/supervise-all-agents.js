@@ -3,15 +3,24 @@
 // Spawns one per-agent watchdog (scripts/watch-blocks-agent.js) for each card
 // in blocks/agents/ and blocks/a2a-demo/, so every agent gets crash-restart
 // with exponential backoff, PID-lock safety, and per-agent logs. The whole
-// network is then brought back after a reboot by a Windows logon scheduled
-// task (or the Startup folder) that runs this script.
+// network is then brought back after a reboot by a Windows logon Startup
+// folder entry (see blocks/README.md "4c") that runs this script.
 //
-//   - Detects agents by scanning for agent-card.json (no hardcoded list).
+//   - Detects agents by scanning for agent-card.json at startup (no hardcoded
+//     list). Restart the supervisor to pick up newly added cards.
 //   - PID lock: one supervisor per machine (blocks/logs/supervisor.pid).
-//   - Restart policy: a watchdog child that dies is relaunched after a short
-//     backoff (5s -> 60s), unless we're stopping.
-//   - Graceful stop: SIGINT / SIGTERM stop every watchdog (which in turn stops
-//     its `blocks run` child) and exit.
+//   - Per-agent backoff (5s -> 60s), reset to 5s after a child has stayed up
+//     for 10+ minutes — a crash-looping agent can't slow down other agents'
+//     restarts.
+//   - A watchdog child that exits code 0 within a few seconds means another
+//     watchdog already owns that agent's lock ("already supervised
+//     elsewhere") — the supervisor stops managing that agent instead of
+//     restart-looping it forever.
+//   - A `restartScheduled` flag prevents the double-launch that can happen
+//     when both the 'exit' and 'error' events fire for one failure.
+//   - Graceful stop: SIGINT / SIGTERM kill each watchdog's process TREE
+//     (taskkill /T on Windows, where plain SIGTERM is a hard kill that would
+//     orphan the `blocks run` child), then exit.
 //
 // Usage:  node scripts/supervise-all-agents.js
 
@@ -22,6 +31,7 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
+const isWin = process.platform === 'win32'
 
 // ---------- discover every agent card ----------
 function discoverAgents() {
@@ -80,18 +90,45 @@ function releaseLock() {
 
 const BASE_DELAY_MS = 5_000
 const MAX_DELAY_MS = 60_000
-let delayMs = BASE_DELAY_MS
+const UPTIME_RESET_MS = 10 * 60_000
+const FAST_EXIT_MS = 3_000
 let stopping = false
 
-const children = new Map() // name -> { child, restarts, restartTimer }
+const children = new Map() // name -> { child, delayMs, restartTimer, restartScheduled, startedAt }
+
+function scheduleRestart(name) {
+  const entry = children.get(name)
+  if (!entry || stopping || entry.restartScheduled) return
+  entry.restartScheduled = true
+  const delay = entry.delayMs
+  log(`restarting watchdog for "${name}" in ${Math.round(delay / 1000)}s…`)
+  entry.restartTimer = setTimeout(() => {
+    entry.restartScheduled = false
+    children.delete(name)
+    launchWatchdog(name)
+  }, delay)
+  entry.delayMs = Math.min(entry.delayMs * 2, MAX_DELAY_MS)
+}
+
+function killTree(pid) {
+  // On Windows, child.kill('SIGTERM') is a hard TerminateProcess that skips
+  // the watchdog's signal handler and orphans its `blocks run` child — so kill
+  // the whole process tree instead (taskkill /T /F).
+  spawn('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' })
+}
 
 function stop(signal) {
   if (stopping) return
   stopping = true
   log(`received ${signal} — stopping all watchdogs, no restarts`)
-  for (const { child, restartTimer } of children.values()) {
-    clearTimeout(restartTimer)
-    if (child && child.exitCode === null) child.kill('SIGTERM')
+  for (const [name, entry] of children) {
+    clearTimeout(entry.restartTimer)
+    if (entry.child && entry.child.exitCode === null) {
+      if (isWin) killTree(entry.child.pid)
+      else entry.child.kill('SIGTERM')
+    } else {
+      log(`watchdog for "${name}" already exited`)
+    }
   }
   setTimeout(() => { releaseLock(); process.exit(0) }, 1_500)
 }
@@ -106,7 +143,7 @@ function launchWatchdog(name) {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
-  const entry = { child, restarts: 0, restartTimer: null }
+  const entry = { child, delayMs: BASE_DELAY_MS, restartTimer: null, restartScheduled: false, startedAt: Date.now() }
   children.set(name, entry)
   log(`watchdog up for "${name}" (pid ${child.pid})`)
 
@@ -114,18 +151,24 @@ function launchWatchdog(name) {
   child.stderr.on('data', chunk => fs.appendFileSync(LOG_FILE, chunk))
 
   child.on('exit', (code, signal) => {
-    log(`watchdog for "${name}" exited code=${code} signal=${signal}`)
+    const uptimeMs = Date.now() - entry.startedAt
+    log(`watchdog for "${name}" exited code=${code} signal=${signal} after ${Math.round(uptimeMs / 1000)}s`)
     if (stopping) return
-    if (entry.restartTimer) clearTimeout(entry.restartTimer)
-    entry.restartTimer = setTimeout(() => {
+
+    // Fast clean exit = another watchdog already owns this agent's lock
+    // (watch-blocks-agent.js exits 0 on lock conflict). Don't restart-loop.
+    if (code === 0 && uptimeMs < FAST_EXIT_MS) {
+      log(`"${name}" is already supervised elsewhere — not managing this agent`)
       children.delete(name)
-      launchWatchdog(name)
-    }, delayMs)
-    delayMs = Math.min(delayMs * 2, MAX_DELAY_MS)
+      return
+    }
+
+    if (uptimeMs >= UPTIME_RESET_MS) entry.delayMs = BASE_DELAY_MS
+    scheduleRestart(name)
   })
   child.on('error', err => {
     log(`watchdog spawn error for "${name}": ${err.message}`)
-    if (!stopping) setTimeout(() => launchWatchdog(name), delayMs)
+    if (!stopping) scheduleRestart(name)
   })
 }
 
@@ -138,5 +181,5 @@ if (!agents.length) {
   process.exit(1)
 }
 log(`supervisor up (pid ${process.pid}) — supervising ${agents.length} agents: ${agents.join(', ')}`)
-log(`blocks bin + logs: ${LOG_DIR}`)
+log(`logs: ${LOG_DIR}`)
 for (const name of agents) launchWatchdog(name)
