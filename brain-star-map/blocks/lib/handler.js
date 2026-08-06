@@ -106,17 +106,25 @@ export default async function handler(task, ctx) {
     agentName === 'ada_syndicate' ? { bundleSizeBytes: 2048, maxLatencyMs: 50 } : undefined,
   )
 
+  // A transient stream-write error must not fail the task — the final
+  // artifact still delivers the answer (the pipe agents use stream.onError
+  // for the same reason).
+  const write = (text) => {
+    if (!stream || !text) return
+    try { stream.write(text) } catch (_) { /* keep the task alive */ }
+  }
+
   const emit = (evt) => {
     if (!evt) return
     switch (evt.type) {
       case 'token':
-        if (stream && evt.text) stream.write(evt.text)
+        write(evt.text)
         break
       case 'text':
         // Whole-answer chunk for paths that don't emit tokens (cache hits,
         // blocked, INFRA fast paths, deterministic fallback): the caller's
         // stream stays complete even when there's no LLM synthesis.
-        if (stream && evt.text) stream.write(evt.text)
+        write(evt.text)
         break
       case 'status':
         ctx?.reportStatus(evt.message)

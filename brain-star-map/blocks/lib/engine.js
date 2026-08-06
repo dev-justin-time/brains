@@ -77,7 +77,8 @@ export function resolveAgent(agentName) {
 export async function buildStream(ctx, opts = {}) {
   if (!ctx?.createStream || ctx.hasStream === false) return null
   try {
-    return await ctx.createStream({ direction: 'outbound', format: 'bytes', declaredStream: '_default', ...opts })
+    // Hardcoded keys first so callers can't override direction/format/stream key.
+    return await ctx.createStream({ ...opts, direction: 'outbound', format: 'bytes', declaredStream: '_default' })
   } catch {
     return null
   }
