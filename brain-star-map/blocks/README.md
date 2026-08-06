@@ -11,21 +11,30 @@ blocks/
 │   ├── engine.js         # pipeline: requestParts, streaming, expert + router execution
 │   ├── a2a.js            # agent-to-agent: sub-task calls, parallel fan-out, merge
 │   ├── pipe.js           # pipe-streaming: paper_feed long-lived event session
+│   ├── paperupdates.js   # paper_updates: live arXiv "what's new" pipe stream
+│   ├── arxiv.js          # arXiv Atom API client (query + parse, no deps)
 │   ├── demo.js           # star_map_demo: LLM-free corpus answers + demo.html artifact
 │   ├── sota.js           # sota_tracker: LLM-free benchmark leaderboard answers
+│   ├── datasetfinder.js  # dataset_finder: LLM-free datasets directory answers
+│   ├── citationhunter.js # citation_hunter: LLM-free citation-style queries (proxy)
 │   ├── litreview.js      # lit_review: multi-hop structured literature review
 │   ├── graphexplorer.js  # graph_explorer: LLM-free star-map graph reasoning
 │   ├── clinical.js       # clinical_translator: plain-language practice notes
+│   ├── codesuggester.js  # code_suggester: PyTorch architecture skeleton (LLM)
 │   └── grantwriter.js    # grant_writer: proposal draft (background + related work)
 ├── agents/
 │   ├── router/                   agent-card.json  — cross-topic coordinator
 │   ├── orchestrator/             agent-card.json  — A2A fan-out over the network (generated)
 │   ├── paper_feed/               agent-card.json  — pipe agent: live corpus event stream (generated)
+│   ├── paper_updates/            agent-card.json  — pipe agent: live arXiv new-papers stream (generated)
 │   ├── star_map_demo/            agent-card.json  — FREE demo agent: LLM-free answers + demo.html artifact (generated)
 │   ├── sota_tracker/             agent-card.json  — benchmark leaderboard agent: LLM-free SOTA answers (generated)
+│   ├── dataset_finder/           agent-card.json  — datasets directory agent: LLM-free (generated)
+│   ├── citation_hunter/          agent-card.json  — citation-style queries: LLM-free proxy (generated)
 │   ├── lit_review/               agent-card.json  — structured literature review agent (generated)
 │   ├── graph_explorer/           agent-card.json  — star-map graph reasoning agent (generated)
 │   ├── clinical_translator/      agent-card.json  — plain-language practice notes (generated)
+│   ├── code_suggester/           agent-card.json  — PyTorch architecture skeleton (generated)
 │   └── grant_writer/             agent-card.json  — grant proposal drafting (generated)
 │   ├── expert_bci_eeg/           agent-card.json  — BCI & EEG Expert
 │   ├── expert_neural_decoding/   agent-card.json  — Neural Decoding Expert
@@ -42,9 +51,13 @@ blocks/
 ├── test-pipe.mjs        # offline pipe-streaming contract harness (mocked ctx)
 ├── test-demo.mjs        # offline star_map_demo contract harness
 ├── test-sota.mjs        # offline sota_tracker contract harness
+├── test-datasetfinder.mjs # offline dataset_finder contract harness
+├── test-citationhunter.mjs # offline citation_hunter contract harness (pure graph math)
 ├── test-litreview.mjs   # offline lit_review contract harness (retrieval fallback path)
 ├── test-graphexplorer.mjs  # offline graph_explorer contract harness (pure graph math)
 ├── test-clinical.mjs    # offline clinical_translator contract harness (retrieval path)
+├── test-codesuggester.mjs # offline code_suggester contract harness (retrieval path)
+├── test-paperupdates.mjs # offline paper_updates pipe harness (fake arXiv fetcher)
 └── test-grantwriter.mjs # offline grant_writer contract harness (retrieval path)
 
 data/benchmarks.json            # benchmark leaderboard seed (regenerate: npm run blocks:sota:build)
@@ -61,7 +74,7 @@ match the actual database — the same data the web app visualizes.
 
 | Blocks concept | Implementation |
 |---|---|
-| **Agent** | 14 generated agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`) + 1 structured literature review (`lit_review`) + 1 graph reasoning (`graph_explorer`) + 1 clinical translator + 1 grant writer, plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
+| **Agent** | 22 agents: 6 topic experts + 1 router + 1 orchestrator + 1 free demo (`star_map_demo`) + 1 benchmark leaderboard (`sota_tracker`) + 1 datasets directory (`dataset_finder`) + 1 citation-style (`citation_hunter`) + 1 structured literature review (`lit_review`) + 1 graph reasoning (`graph_explorer`) + 1 clinical translator + 1 code skeleton (`code_suggester`) + 1 grant writer + 2 pipe feeds (`paper_feed` corpus, `paper_updates` live arXiv), plus 3 reference demo agents (`blocks/a2a-demo/`). All share one handler; the network targets an agent by `identity.agentName` and the handler resolves it from `task.agentName`. |
 | **Agent card** | `agent-card.json` per agent — identity, capabilities, io, streams, tags, runtime (see below). |
 | **Task (request)** | Each card declares `capabilities.taskKinds: ["request"]` — single question in, answer out. |
 | **requestParts / partId** | Input declared as `io.inputs[].id = "question"`. Callers send `requestParts: [{ partId: "question", text: "…" }]`. A missing/mismatched part fails the task fast (`failed` state). |
@@ -69,7 +82,7 @@ match the actual database — the same data the web app visualizes.
 | **Progress events** | `ctx.reportStatus(msg)` on every pipeline stage (cache hit, routing, expert working, consult, merge). |
 | **Artifacts** | `{ outputId: "answer", mimeType: "text/plain" }` + `{ outputId: "sources", mimeType: "application/json", fileName: "sources.json" }` — matching `io.outputs`. Small artifacts inline; large ones are uploaded automatically by the SDK. |
 | **Streams (request)** | Outbound `bytes` stream declared as `streams._default`; the handler streams answer tokens via `ctx.createStream({ direction:'outbound', format:'bytes' })` and `stream.write(token)`. |
-| **Streams (pipe)** | `paper_feed` declares `streams.feed` (events, `affinity: dedicated`) + `capabilities.taskKinds: ["pipe"]`; the handler opens it with `ctx.createStream({ format:'events', declaredStream:'feed' })` and streams paper events until `cancelSignal`/`isExpired`. |
+| **Streams (pipe)** | `paper_feed` (corpus stream) and `paper_updates` (live arXiv stream) declare `streams.feed` (events, `affinity: dedicated`) + `capabilities.taskKinds: ["pipe"]`; the handler opens it with `ctx.createStream({ format:'events', declaredStream:'feed' })` and streams events until `cancelSignal`/`isExpired`. `paper_updates` queries the live arXiv API (newest-first, paging + wrap-around so fresh submissions are picked up); the sleep helper checks the signal state first so a cancel always terminates the session. |
 | **Visibility** | Set at publish time: `blocks register` = private + free; `blocks publish --visibility public` to list in the catalog. |
 | **A2A (agent-to-agent)** | Any agent can call any agent. The SDK injects a pre-authenticated `ctx.taskClient` into every handler — the `orchestrator` uses it to fan out sub-tasks to specialists over the network and merge the results. Default fan-out auto-routes among all six experts (affinity-filtered, no top-2 cap); an explicit `specialists` input narrows it (see the A2A section below). |
 | **Communication + DB** | The router coordinates the specialists and both the web server and agents read/write the same SQLite DB (`data/agents.db`) — shared popular-question cache and the `agent_messages` log record every router→expert consult. |
@@ -419,10 +432,11 @@ node scripts/remove-blocks-agent.mjs <agentName>   # SDK removeAgent()
 
 ### Invites vs. the live agents
 
-All 18 live agents (router, orchestrator, all six experts, `paper_feed`,
-`star_map_demo`, `sota_tracker`, `lit_review`, `graph_explorer`,
-`clinical_translator`, `grant_writer`, demo trio) are **public** — public agents need no invites;
-any authenticated caller can use them. To gate one behind this invite flow,
+All 22 live agents (router, orchestrator, all six experts, `paper_feed`,
+`paper_updates`, `star_map_demo`, `sota_tracker`, `dataset_finder`,
+`citation_hunter`, `lit_review`, `graph_explorer`, `clinical_translator`,
+`code_suggester`, `grant_writer`, demo trio) are **public** — public agents need
+no invites; any authenticated caller can use them. To gate one behind this invite flow,
 flip it private: `blocks publish --listing private --billing-mode paid`.
 
 ## Streaming — request + pipe (live on the network)
@@ -593,15 +607,73 @@ npm run blocks:litreview:test      # offline contract harness (retrieval path)
 npm run blocks:litreview:call -- "<review question>"   # live
 ```
 
+## dataset_finder — datasets directory agent (live)
+
+`dataset_finder` answers "which dataset for X?" from `data/datasets.json` — a
+directory seeded from the corpus abstracts (17 datasets: task, modality,
+subjects/classes, license status, benchmark SOTA, and the corpus papers that
+use each). Deliberately **LLM-free** — pure retrieval, instant, zero model
+cost. Honesty guardrail: values are inferred from abstracts (licenses are not
+recorded in the corpus), and every answer says so.
+
+```bash
+npm run blocks:dataset:build    # rescan corpus -> data/datasets.json
+npm run blocks:dataset:test
+npm run blocks:call -- dataset_finder "Which dataset for cross-subject motor imagery?"
+```
+
+## citation_hunter — citation-style queries (live)
+
+`citation_hunter` answers "who cites X / what does X build on?" over the
+star-map graph. **LLM-free.** Honesty guardrail: the star-map edges are a
+keyword-co-occurrence PROXY for citations (the real citation graph is not
+ingested yet), and every answer labels its numbers as relatedness signals, not
+citation counts.
+
+```bash
+npm run blocks:citation:test
+npm run blocks:call -- citation_hunter "Most cited papers in Connectomics"
+```
+
+## code_suggester — PyTorch architecture skeleton (live)
+
+`code_suggester` turns a paper's method or a research idea into a PyTorch
+ARCHITECTURE SKELETON — **ARCHITECTURE OVERVIEW / PYTORCH SKELETON (a model
+class + forward) / DATA & PREPROCESSING / TRAINING & EVALUATION / LIMITATIONS**
+with [n] citations via lit_review's multi-hop retrieval. Honesty guardrail:
+code is an unverified outline (no fabricated imports, no "this runs" claims);
+a `skeleton.json` artifact carries the cited papers.
+
+```bash
+npm run blocks:code:test
+npm run blocks:call -- code_suggester "Sketch a CNN-LSTM architecture for motor imagery decoding"
+```
+
+## paper_updates — live arXiv pipe (live)
+
+`paper_updates` evolves `paper_feed` with a LIVE source: a pipe session that
+queries the arXiv API for the newest submissions on a topic (newest-first,
+paging + wrap-around so fresh papers are picked up during the session) and
+streams each as a structured `feed` event. Verified live over the network
+(topic "motor imagery"): 10 real arXiv papers streamed, clean cancel + summary
+artifact.
+
+```bash
+npm run blocks:updates:test              # offline harness (fake arXiv fetcher)
+npm run blocks:pipe:call -- paper_updates "brain-computer interface" 1
+```
+
 ## Pricing — live agents are paid ($0.02/$0.10)
 
-13 paid agents are published **public + paid** on the real network: eleven
-(router, orchestrator, six experts, `sota_tracker`, `graph_explorer`,
-`clinical_translator`) at a flat **$0.02** per task, and two premium agents —
+21 paid agents are published **public + paid** on the real network: seventeen
+(router, orchestrator, six experts, `sota_tracker`, `dataset_finder`,
+`citation_hunter`, `graph_explorer`, `clinical_translator`, `code_suggester`,
+and the demo trio) at a flat **$0.02** per task, two premium agents —
 `lit_review` and `grant_writer` — at **$0.10/task** (multi-hop research +
-synthesis work); `paper_feed` is $0.02/minute. All carry
-**3 free trial tasks** (or minutes) per consumer organization so anyone can
-still try before paying. You keep 85%, Blocks takes 15% (Stripe).
+synthesis work), and two pipe feeds — `paper_feed` and `paper_updates` — at
+**$0.02/minute**. `star_map_demo` is the only **free** agent. All paid agents
+carry **3 free trial tasks** (or minutes) per consumer organization so anyone
+can still try before paying. You keep 85%, Blocks takes 15% (Stripe).
 
 ```bash
 # Request agent (per task)
@@ -617,11 +689,12 @@ agents are charged automatically from the caller's balance. The demo trio
 
 ## Web UI — deployable research console (`ui/`)
 
-`ui/` is a static webapp scaffolded with `blocks init --mode webapp` for 13
-published agents (router, orchestrator, all six experts, `paper_feed`,
-`star_map_demo`, and the three A2A demo agents) and then customized into a
-star-map themed research console. (`sota_tracker` is not wired into the console
-yet — add it to the `AGENTS` table + sign-in lists to surface it there.)
+`ui/` is a static webapp scaffolded with `blocks init --mode webapp` and
+customized into a star-map themed research console exposing **all 22 agents**
+(router, orchestrator, six experts, `paper_feed`, `paper_updates`,
+`star_map_demo`, `sota_tracker`, `dataset_finder`, `citation_hunter`,
+`lit_review`, `graph_explorer`, `clinical_translator`, `grant_writer`,
+`code_suggester`, and the three A2A demo agents).
 
 - **Live**: deployed to Cloudflare Pages at https://ui-c7w.pages.dev —
   visitors sign in with a Blocks account and the console calls the agents.
@@ -633,8 +706,15 @@ yet — add it to the `AGENTS` table + sign-in lists to surface it there.)
 - **Data-driven agent config**: one `AGENTS` table drives the nav chips, input
   fields, and artifact rendering (answer text + styled `[n]` citation markers,
   sources as clickable arXiv cards, orchestrator `report` as pretty JSON).
-- **All 7 agents callable**: switch agent via the chips, sign in once
+- **All 22 agents callable**: switch agent via the chips, sign in once
   (`signInAndGetClients`), and each section shows its card's inputs/streams.
+- **Quick actions**: a showcase strip of one-click example tasks (A2A
+deep-dive, SOTA leaderboard, dataset finder, graph explorer, PyTorch
+skeleton, free demo) that select the agent, prefill, and send.
+- **Exports**: BibTeX + CSV of the sources and "Copy brief" (answer + sources
+as Markdown) — researcher-friendly output.
+- **Free funnel**: "Try the free demo first" on the sign-in gate lands users
+  in `star_map_demo` (no funds needed) and shows paid pricing on the gate.
 
 ### Develop locally
 

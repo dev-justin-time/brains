@@ -110,6 +110,11 @@
   }
 
   // Multi-agent scaffold: signInAndGetClients returns one TaskClient per agent.
+  // The agent set is the scope of the embed-auth session (partition key), so
+  // adding an agent here means re-consenting once; the refresh token then
+  // covers the whole set for 24h.
+  const AGENT_IDS = ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "expert_deep_learning", "expert_neural_decoding", "expert_clinical_apps", "expert_other", "paper_feed", "paper_updates", "star_map_demo", "sota_tracker", "dataset_finder", "citation_hunter", "graph_explorer", "lit_review", "clinical_translator", "grant_writer", "code_suggester", "my_echo", "my_adder", "my_orchestrator"];
+
   let clients = null;
 
   function embedBackendBaseUrl() {
@@ -124,7 +129,7 @@
       return false;
     }
     try {
-      clients = await BlocksAuth.signInAndGetClients({ agents: ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "expert_deep_learning", "expert_neural_decoding", "expert_clinical_apps", "expert_other", "paper_feed", "star_map_demo", "my_echo", "my_adder", "my_orchestrator"], backendBaseUrl: embedBackendBaseUrl() });
+      clients = await BlocksAuth.signInAndGetClients({ agents: AGENT_IDS, backendBaseUrl: embedBackendBaseUrl() });
       window.__blocksClients = clients; // exposed for debugging
       signInBtn.hidden = true;
       gateSignInBtn.hidden = true;
@@ -150,7 +155,7 @@
       if (!Array.isArray(arr) || arr.length === 0) return false;
       const backendBaseUrl = embedBackendBaseUrl();
       const pageOrigin = window.location.origin;
-      const agentNames = ["router", "orchestrator", "expert_connectomics", "expert_bci_eeg", "expert_deep_learning", "expert_neural_decoding", "expert_clinical_apps", "expert_other", "paper_feed", "star_map_demo", "my_echo", "my_adder", "my_orchestrator"];
+      const agentNames = AGENT_IDS;
       const expected = await BlocksAuth.computePartitionKey({ backendBaseUrl, pageOrigin, agentNames });
       return arr.some(function (entry) { return entry && entry.partitionKey === expected; });
     } catch (_) {
@@ -347,6 +352,127 @@
         { id: 'request', label: 'Trigger', rows: 2, hint: 'Any text; the orchestrator runs its fixed pipeline.',
           default: 'Run the demo' }
       ]
+    },
+    {
+      id: 'sota_tracker',
+      label: 'SOTA Tracker',
+      tagline: 'LLM-free — benchmark leaderboard: "what\u2019s the SOTA on BCI IV-2a?" with ranked self-reported results.',
+      color: '#f59e0b',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: false,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 3, hint: 'A SOTA / leaderboard question, e.g. "best accuracy on BCI IV-2a" or "all benchmarks".',
+          default: 'What is the state of the art on BCI IV-2a?' }
+      ]
+    },
+    {
+      id: 'dataset_finder',
+      label: 'Dataset Finder',
+      tagline: 'LLM-free — which dataset for your task? Cards with modality, subjects, benchmark SOTA and corpus users.',
+      color: '#22c55e',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: false,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 3, hint: 'e.g. "which dataset for motor imagery?", "dataset for seizure detection", "details on WAY-EEG-GAL", "all datasets".',
+          default: 'Which dataset should I use for cross-subject motor imagery decoding?' }
+      ]
+    },
+    {
+      id: 'citation_hunter',
+      label: 'Citation Hunter',
+      tagline: 'LLM-free — "who cites X?" over the star-map. Keyword-proxy edges, labeled honestly.',
+      color: '#a78bfa',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: false,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 3, hint: 'e.g. "most cited papers in Connectomics", "who cites <paper>?", "how many connections does <paper> have?".',
+          default: 'Most cited papers in Connectomics' }
+      ]
+    },
+    {
+      id: 'graph_explorer',
+      label: 'Graph Explorer',
+      tagline: 'LLM-free — centrality, subgraphs, communities, bridges and paths over the star-map graph.',
+      color: '#2dd4bf',
+      kind: 'research',
+      outputs: ['answer', 'subgraph', 'sources'],
+      hasStream: false,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 3, hint: 'e.g. "most central papers in Connectomics", "subgraph around <paper>", "shortest path between <A> and <B>".',
+          default: 'Most central papers in Connectomics' }
+      ]
+    },
+    {
+      id: 'lit_review',
+      label: 'Lit Review ($0.10)',
+      tagline: 'Multi-hop structured literature review — OVERVIEW / METHOD COMPARISON / KEY FINDINGS / GAPS with citations.',
+      color: '#38bdf8',
+      kind: 'research',
+      outputs: ['answer', 'sources', 'review'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 3, hint: 'A research question for a structured review with [n] citations.',
+          default: 'Compare Riemannian and deep-learning decoders for motor imagery' },
+        { id: 'focus', label: 'Focus (optional)', rows: 1, hint: 'Sharpen the comparison axes, e.g. "focus on cross-subject generalization".',
+          default: '' }
+      ]
+    },
+    {
+      id: 'clinical_translator',
+      label: 'Clinical Translator',
+      tagline: 'Paper findings \u2192 plain-language practice notes for stroke rehab, CP, neurofeedback.',
+      color: '#fb923c',
+      kind: 'research',
+      outputs: ['answer', 'sources'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Question', rows: 3, hint: 'Ask about clinical applications in plain terms.',
+          default: 'What does recent EEG research mean for stroke rehabilitation?' }
+      ]
+    },
+    {
+      id: 'grant_writer',
+      label: 'Grant Writer ($0.10)',
+      tagline: 'Research idea \u2192 proposal draft (TITLE / BACKGROUND / RELATED WORK / CONTRIBUTION / RISKS) with citations.',
+      color: '#f472b6',
+      kind: 'research',
+      outputs: ['answer', 'sources', 'draft'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Research idea', rows: 3, hint: 'Describe the research idea for the proposal draft.',
+          default: 'Combine foundation models with Riemannian decoding for cross-subject EEG' }
+      ]
+    },
+    {
+      id: 'code_suggester',
+      label: 'Code Suggester',
+      tagline: 'Method or idea \u2192 PyTorch architecture skeleton with citations (unverified outline).',
+      color: '#34d399',
+      kind: 'research',
+      outputs: ['answer', 'sources', 'skeleton'],
+      hasStream: true,
+      inputs: [
+        { id: 'question', label: 'Method / idea', rows: 3, hint: 'What architecture should be sketched? Cite-checked against the corpus.',
+          default: 'Sketch a CNN-LSTM architecture for motor imagery decoding' }
+      ]
+    },
+    {
+      id: 'paper_updates',
+      label: 'Paper Updates (live arXiv)',
+      tagline: 'Pipe agent — streams the NEWEST arXiv submissions on a topic as live events; fresh papers picked up live.',
+      color: '#06b6d4',
+      kind: 'pipe',
+      outputs: ['summary'],
+      hasStream: false,
+      inputs: [
+        { id: 'topic', label: 'Topic', rows: 2, hint: 'Keyword/phrase for the live arXiv query (comma-separated terms are OR-ed).',
+          default: 'brain-computer interface, motor imagery' },
+        { id: 'duration', label: 'Duration (minutes)', type: 'number', rows: 1, hint: 'Pipe session length: 1 minute – 30 days. Events stream until you stop or it expires.',
+          default: '1' }
+      ]
     }
   ];
 
@@ -389,6 +515,8 @@
 
   function resetOutputs() {
     resetStarMapDemo && resetStarMapDemo();
+    lastSourcesData = [];
+    lastAnswerText = '';
     answerArea.hidden = true;
     answerText.textContent = '';
     answerState.textContent = '';
@@ -426,6 +554,7 @@
   function renderSources(data) {
     const arr = Array.isArray(data) ? data : (data && data.sources) || [];
     if (!arr.length) return;
+    lastSourcesData = arr;
     sourcesArea.hidden = false;
     sourcesList.textContent = '';
     arr.forEach(function (src, i) {
@@ -438,6 +567,101 @@
       sourcesList.appendChild(a);
     });
   }
+
+  // -------------------------------------------------------------------------
+  // Exports (BibTeX / CSV / copy-brief) + showcase quick actions + free funnel
+  // -------------------------------------------------------------------------
+  let lastSourcesData = [];
+  let lastAnswerText = '';
+  let pendingShowcase = null;
+
+  function downloadText(filename, text, mime) {
+    const blob = new Blob([text], mime ? { type: mime } : undefined);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportBibtex() {
+    if (!lastSourcesData.length) return;
+    const entries = lastSourcesData.map(function (s, i) {
+      const key = 'sm' + (i + 1);
+      const authors = (s.authors && s.authors.length) ? s.authors.join(' and ') : (s.first_author || 'Unknown');
+      const year = s.year || 'n.d.';
+      return '@misc{' + key + ',\n  title = {' + (s.title || 'Untitled') + '},\n  author = {' + authors + '},\n  year = {' + year + '},\n  url = {' + (s.url || '') + '}\n}';
+    }).join('\n\n');
+    downloadText('brain-star-map-sources.bib', entries, 'text/plain');
+  }
+
+  function exportCsv() {
+    if (!lastSourcesData.length) return;
+    const esc = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+    const rows = [['#', 'title', 'authors', 'year', 'url'].map(esc).join(',')];
+    lastSourcesData.forEach(function (s, i) {
+      rows.push([i + 1, s.title, s.authors ? s.authors.join('; ') : s.first_author, s.year, s.url].map(esc).join(','));
+    });
+    downloadText('brain-star-map-sources.csv', rows.join('\n'), 'text/csv');
+  }
+
+  async function copyBrief() {
+    if (!lastAnswerText && !lastSourcesData.length) return;
+    let md = lastAnswerText || '';
+    if (lastSourcesData.length) {
+      md += '\n\n---\nSources:\n' + lastSourcesData.map(function (s, i) {
+        return (i + 1) + '. ' + (s.title || 'Untitled') + (s.year ? ' (' + s.year + ')' : '') + (s.url ? ' — ' + s.url : '');
+      }).join('\n');
+    }
+    try {
+      await navigator.clipboard.writeText(md);
+      const btn = document.getElementById('copy-brief-btn');
+      if (btn) {
+        const old = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        setTimeout(function () { btn.textContent = old; }, 1500);
+      }
+    } catch (_) { /* clipboard unavailable — ignore */ }
+  }
+
+  // One-click quick actions: select the agent, prefill, and send. Doubles as
+  // the free-funnel (star_map_demo needs no funds) and the A2A showcase.
+  const SHOWCASE = [
+    { agent: 'orchestrator', label: 'A2A deep-dive', question: 'Compare connectomics and deep learning approaches in brain research', icon: '⚡', tag: '6 experts in parallel' },
+    { agent: 'lit_review', label: 'Literature review', question: 'Compare Riemannian and deep-learning decoders for motor imagery', icon: '📚', tag: '$0.10' },
+    { agent: 'sota_tracker', label: 'SOTA leaderboard', question: 'What is the state of the art on BCI IV-2a?', icon: '🏆', tag: 'LLM-free' },
+    { agent: 'dataset_finder', label: 'Find a dataset', question: 'Which dataset should I use for cross-subject motor imagery decoding?', icon: '🗂', tag: 'LLM-free' },
+    { agent: 'graph_explorer', label: 'Graph explorer', question: 'Most central papers in Connectomics', icon: '✦', tag: 'LLM-free' },
+    { agent: 'code_suggester', label: 'PyTorch skeleton', question: 'Sketch a CNN-LSTM architecture for motor imagery decoding', icon: '⌘', tag: 'LLM' },
+    { agent: 'star_map_demo', label: 'Free demo', question: 'Show me the demo', icon: '✧', tag: 'FREE · no funds needed' },
+  ];
+
+  function buildShowcase() {
+    const strip = document.getElementById('showcase');
+    if (!strip) return;
+    strip.textContent = '';
+    SHOWCASE.forEach(function (card) {
+      const b = el('button', 'showcase-card');
+      b.type = 'button';
+      b.appendChild(el('span', 'showcase-icon', card.icon));
+      const body = el('span', 'showcase-body');
+      body.appendChild(el('span', 'showcase-label', card.label));
+      body.appendChild(el('span', 'showcase-tag', card.tag));
+      b.appendChild(body);
+      b.addEventListener('click', function () { runShowcase(card); });
+      strip.appendChild(b);
+    });
+  }
+
+  function runShowcase(card) {
+    if (!clients) { pendingShowcase = card; attemptSignIn(); return; }
+    selectAgent(card.agent);
+    const ta = document.getElementById('input-' + card.agent + '-question') || composerInputs.querySelector('textarea');
+    if (ta) ta.value = card.question;
+    sendTask(new Event('submit'));
+  }
+
 
   function buildInputs(agent) {
     composerInputs.textContent = '';
@@ -506,6 +730,13 @@
     if (gate) gate.hidden = true;
     if (consoleEl) consoleEl.hidden = false;
     selectAgent(AGENTS[0].id);
+    // Free-funnel: if the user clicked a showcase card before signing in, run
+    // it now (lands them directly in that agent with the question sent).
+    if (pendingShowcase) {
+      const card = pendingShowcase;
+      pendingShowcase = null;
+      runShowcase(card);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -740,6 +971,7 @@
         // The terminal answer artifact is authoritative; replace streamed text.
         answerText.textContent = '';
         answerText.textContent = text;
+        lastAnswerText = text;
         markCitations(answerText);
         break;
       }
@@ -756,7 +988,13 @@
         catch (_) { reportText.textContent = text; }
         break;
       }
-      case 'report': {
+      case 'report':
+      case 'review':
+      case 'draft':
+      case 'subgraph':
+      case 'skeleton': {
+        // Structured JSON artifacts (orchestrator report, lit_review review,
+        // grant draft, graph subgraph, code skeleton) share the report panel.
         reportArea.hidden = false;
         try { reportText.textContent = JSON.stringify(JSON.parse(text), null, 2); }
         catch (_) { reportText.textContent = text; }
@@ -816,6 +1054,24 @@
       }
     }
   });
+
+  // Export + showcase + free-funnel wiring.
+  const exportBibBtn = document.getElementById('export-bib-btn');
+  const exportCsvBtn = document.getElementById('export-csv-btn');
+  const copyBriefBtn = document.getElementById('copy-brief-btn');
+  if (exportBibBtn) exportBibBtn.addEventListener('click', exportBibtex);
+  if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportCsv);
+  if (copyBriefBtn) copyBriefBtn.addEventListener('click', copyBrief);
+
+  const gateDemoBtn = document.getElementById('gate-demo-btn');
+  if (gateDemoBtn) {
+    gateDemoBtn.addEventListener('click', function () {
+      pendingShowcase = { agent: 'star_map_demo', question: 'Show me the demo' };
+      attemptSignIn();
+    });
+  }
+
+  buildShowcase();
 
   // A11y: expose auth state
   const authState = document.getElementById('auth-state');

@@ -194,6 +194,9 @@ main { flex: 1; width: 100%; max-width: 1060px; margin: 0 auto; padding: 20px 28
 }
 .gate-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
 .gate-card p { font-size: 13.5px; line-height: 1.65; color: var(--text-muted); margin-bottom: 26px; }
+.gate-alt { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 18px; display: flex; flex-direction: column; gap: 9px; align-items: center; }
+.gate-alt .btn-ghost { width: 100%; justify-content: center; }
+.gate-note { font-size: 11px; color: var(--text-faint); margin: 0; }
 
 /* ---------- agent nav ---------- */
 .agent-nav {
@@ -230,6 +233,44 @@ main { flex: 1; width: 100%; max-width: 1060px; margin: 0 auto; padding: 20px 28
   box-shadow: 0 0 8px var(--chip-color, var(--accent));
 }
 .agent-chip.active .chip-dot { box-shadow: 0 0 10px var(--chip-color, var(--accent)); }
+
+/* ---------- showcase quick actions ---------- */
+.showcase {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.showcase-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font);
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 13px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  backdrop-filter: blur(8px);
+}
+.showcase-card:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(15, 82, 186, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(15, 82, 186, 0.25);
+}
+.showcase-icon { font-size: 15px; line-height: 1; }
+.showcase-body { display: flex; flex-direction: column; gap: 1px; }
+.showcase-label { font-size: 12px; font-weight: 600; color: var(--text); }
+.showcase-tag {
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.showcase-card:hover .showcase-tag { color: #93c5fd; }
 
 /* ---------- console grid ---------- */
 .console-grid {
@@ -321,6 +362,23 @@ main { flex: 1; width: 100%; max-width: 1060px; margin: 0 auto; padding: 20px 28
 }
 .answer-state { font-size: 10px; letter-spacing: 0.06em; color: var(--emerald); font-weight: 500; }
 .answer-state.working { color: #93c5fd; }
+
+.btn-mini {
+  font-family: var(--font);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: auto;
+}
+.btn-mini:hover { color: var(--text); background: rgba(148, 163, 184, 0.16); border-color: var(--border-strong); }
+.export-spacer { flex: 1; }
 
 .answer-area, .sources-area, .report-area {
   background: rgba(2, 2, 5, 0.45);

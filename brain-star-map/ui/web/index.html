@@ -37,7 +37,7 @@
       <span class="brand-mark" aria-hidden="true">✦</span>
       <div class="brand-text">
         <h1>Brain Star Map</h1>
-        <p>Research Console · 13 live agents · Network Neuroscience &amp; Connectomics</p>
+        <p>Research Console · 22 live agents · Network Neuroscience &amp; Connectomics</p>
       </div>
     </div>
     <div id="auth-bar">
@@ -55,15 +55,21 @@
       <div class="gate-card">
         <div class="gate-icon" aria-hidden="true">✧</div>
         <h2>Sign in to start researching</h2>
-        <p>Authenticate with your Blocks account, then ask questions across the 215-paper corpus — or fan them out to specialist agents in parallel.</p>
+        <p>Ask the 215-paper corpus, fan questions out to specialist agents in parallel (A2A), check benchmark SOTA, find datasets, review literature, or draft a proposal.</p>
         <button id="gate-sign-in-btn" class="btn btn-auth btn-lg" type="button">
           <span class="btn-dot" aria-hidden="true"></span>Sign in with Blocks
         </button>
+        <div class="gate-alt">
+          <button id="gate-demo-btn" class="btn btn-ghost" type="button">✧ Try the free demo first — no funds needed</button>
+          <p class="gate-note">Most agents cost $0.02–$0.10/task (3 free trials); the Star Map Demo is free.</p>
+        </div>
       </div>
     </section>
 
     <section id="console" hidden>
       <nav id="agent-nav" class="agent-nav" aria-label="Select agent"></nav>
+
+      <div id="showcase" class="showcase" aria-label="Quick actions"></div>
 
       <div class="console-grid">
         <aside class="agent-card" id="agent-card">
@@ -85,12 +91,18 @@
             <div class="answer-meta">
               <span id="answer-label">ANSWER</span>
               <span id="answer-state" class="answer-state"></span>
+              <button id="copy-brief-btn" class="btn btn-mini" type="button">Copy brief</button>
             </div>
             <div id="answer-text" class="answer-text"></div>
           </div>
 
           <div id="sources-area" class="sources-area" hidden>
-            <div class="sources-meta">SOURCES</div>
+            <div class="sources-meta">
+              <span>SOURCES</span>
+              <span class="export-spacer"></span>
+              <button id="export-bib-btn" class="btn btn-mini" type="button">⬇ BibTeX</button>
+              <button id="export-csv-btn" class="btn btn-mini" type="button">⬇ CSV</button>
+            </div>
             <ul id="sources-list" class="sources-list"></ul>
           </div>
 
@@ -118,7 +130,7 @@
   </main>
 
   <footer class="footer">
-    Powered by <a href="https://blocks.ai" target="_blank" rel="noreferrer">Blocks Network</a> · agents: router · orchestrator · expert_connectomics · expert_bci_eeg · paper_feed · star_map_demo · my_echo · my_adder · my_orchestrator
+    Powered by <a href="https://blocks.ai" target="_blank" rel="noreferrer">Blocks Network</a> · 22 agents: router · orchestrator · 6 topic experts · lit_review · sota_tracker · dataset_finder · citation_hunter · graph_explorer · clinical_translator · grant_writer · code_suggester · paper_feed · paper_updates · star_map_demo · A2A demo trio
   </footer>
 
   <script src="app.js" defer></script>
