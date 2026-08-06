@@ -494,6 +494,200 @@ function sotaTrackerCard() {
   }
 }
 
+// dataset_finder — datasets directory agent, LLM-free like sota_tracker
+// (reads data/datasets.json, no model calls, no stream).
+function datasetFinderCard() {
+  return {
+    identity: {
+      agentName: 'dataset_finder',
+      displayName: 'Dataset Finder — Dataset Directory',
+      description:
+        'Finds public datasets for brain-tech research: "which dataset for motor imagery?" or "details on BCI IV-2a". ' +
+        'Answers from a directory seeded from the corpus abstracts (modality, task, subjects/classes, benchmark SOTA, ' +
+        'and the corpus papers that use each dataset). LLM-free — pure retrieval from data/datasets.json, instant and near-free.',
+      version: '1.0.0',
+      provider: { organization: 'Brain Citation Star Map' },
+    },
+    capabilities: { taskKinds: ['request'] },
+    io: {
+      inputs: [{
+        id: 'question',
+        description: 'Which dataset for a task? Or a dataset name for its full card (e.g. "details on WAY-EEG-GAL", "dataset for seizure detection", "all datasets")',
+        contentType: 'text/plain',
+        required: true,
+        example: 'Which dataset should I use for cross-subject motor imagery decoding?',
+      }],
+      outputs: [
+        {
+          id: 'answer',
+          description: 'Ranked dataset cards (id, task, modality, subjects/classes, license, benchmark SOTA)',
+          contentType: 'text/plain',
+          guaranteed: true,
+          schema: { type: 'string' },
+        },
+        {
+          id: 'sources',
+          description: 'Corpus papers that use/mention the datasets, as structured JSON (title, year, arXiv URL)',
+          contentType: 'application/json',
+          guaranteed: false,
+          schema: { type: 'array' },
+        },
+      ],
+    },
+    // No streams block — LLM-free instant answers, same as star_map_demo / sota_tracker.
+    tags: [
+      ...COMMON_TAGS,
+      {
+        id: 'dataset-directory',
+        name: 'Dataset Directory',
+        description: 'Research question -> matching public datasets with metadata and benchmark SOTA',
+        examples: ['Which dataset for motor imagery?', 'Details on BCI IV-2a'],
+      },
+    ],
+    runtime: RUNTIME,
+  }
+}
+
+// citation_hunter — LLM-free citation-style queries over the star-map graph
+// (keyword-co-occurrence proxy, labeled honestly, same graph data as the demo).
+function citationHunterCard() {
+  return {
+    identity: {
+      agentName: 'citation_hunter',
+      displayName: 'Citation Hunter — Who Cites Whom',
+      description:
+        'Answers citation-style questions over the star-map: "most cited papers in Connectomics", "who cites <paper>?", ' +
+        '"how connected is <paper>?". LLM-free — pure graph computation, instant and near-free. Edges are the ' +
+        'keyword-co-occurrence proxy (the star-map\u2019s citation graph is incomplete); every answer says so.',
+      version: '1.0.0',
+      provider: { organization: 'Brain Citation Star Map' },
+    },
+    capabilities: { taskKinds: ['request'] },
+    io: {
+      inputs: [{
+        id: 'question',
+        description: 'A citation-style question: "most cited papers in Connectomics", "who cites <paper title>?", "how many connections does <paper> have?"',
+        contentType: 'text/plain',
+        required: true,
+        example: 'Who cites the DRDCAE-STGNN motor imagery paper?',
+      }],
+      outputs: [
+        {
+          id: 'answer',
+          description: 'Citation-style answer from the star-map (proxy connections, honestly labeled)',
+          contentType: 'text/plain',
+          guaranteed: true,
+          schema: { type: 'string' },
+        },
+        {
+          id: 'sources',
+          description: 'Related papers as structured JSON (title, year, arXiv URL)',
+          contentType: 'application/json',
+          guaranteed: false,
+          schema: { type: 'array' },
+        },
+      ],
+    },
+    // No streams block — LLM-free instant answers.
+    tags: [
+      ...COMMON_TAGS,
+      {
+        id: 'citation-hunter',
+        name: 'Citation-Style Queries',
+        description: 'Most-cited / who-cites queries over the star-map proxy graph',
+        examples: ['Most cited papers in Connectomics', 'Who cites a specific paper?'],
+      },
+    ],
+    runtime: RUNTIME,
+  }
+}
+
+// code_suggester — LLM PyTorch architecture skeleton (streams). Honesty
+// guardrail: architecture outline only, never claims the code runs.
+function codeSuggesterCard() {
+  return card({
+    agentName: 'code_suggester',
+    displayName: 'Code Suggester — PyTorch Skeleton',
+    description:
+      'Turns a paper\u2019s method or a research idea into a PyTorch ARCHITECTURE SKELETON: ARCHITECTURE OVERVIEW, ' +
+      'PYTORCH SKELETON (a model class + forward with the cited methods\u2019 design choices as comments), DATA & ' +
+      'PREPROCESSING, TRAINING & EVALUATION, and LIMITATIONS — each citing the corpus papers it draws on. ' +
+      'Returns a structured skeleton.json artifact. Skeletons are unverified starting points, not runnable code.',
+    tags: [
+      {
+        id: 'code-suggestion',
+        name: 'PyTorch Architecture Skeleton',
+        description: 'Paper method -> compact PyTorch model skeleton with citations',
+        examples: ['Sketch a CNN-LSTM architecture for motor imagery decoding', 'PyTorch skeleton for a Riemannian self-attention EEG decoder'],
+      },
+    ],
+    ioExtra: {
+      inputs: [QUESTION_INPUT],
+      outputs: [...OUTPUTS, {
+        id: 'skeleton',
+        description: 'Structured skeleton as JSON: idea, cited papers, and parsed sections (title + body per section)',
+        contentType: 'application/json',
+        guaranteed: false,
+        schema: { type: 'object' },
+      }],
+    },
+  })
+}
+
+// paper_updates — live arXiv "what's new" pipe agent. Same pipe shape as
+// paper_feed (dedicated "feed" events stream), but pulls from the live arXiv
+// API instead of the static corpus.
+function paperUpdatesCard() {
+  return {
+    identity: {
+      agentName: 'paper_updates',
+      displayName: 'Paper Updates — Live arXiv Stream',
+      description:
+        'Pipe-streaming agent: a live "what\u2019s new" feed from arXiv. Send a topic and a duration ' +
+        '(1 minute – 30 days), and receive the NEWEST arXiv submissions on that topic as structured ' +
+        'events (title, authors, published date, abstract snippet, category, arXiv URL) in real time, ' +
+        'with fresh submissions picked up as the session runs. Evolves paper_feed (corpus stream) with a live source.',
+      version: '1.0.0',
+      provider: { organization: 'Brain Citation Star Map' },
+    },
+    capabilities: { taskKinds: ['pipe'] },
+    io: {
+      inputs: [{
+        id: 'topic',
+        description: 'A topic keyword or phrase for the live arXiv query (e.g. "motor imagery EEG", comma-separated terms are OR-ed)',
+        contentType: 'text/plain',
+        required: true,
+        example: 'brain-computer interface, motor imagery',
+      }],
+      outputs: [{
+        id: 'summary',
+        description: 'Session summary as structured JSON (topic, streamed count, first/last published dates)',
+        contentType: 'application/json',
+        guaranteed: true,
+        schema: { type: 'object' },
+      }],
+    },
+    streams: {
+      feed: {
+        direction: 'outbound',
+        format: 'events',
+        affinity: 'dedicated',
+        description: 'Live arXiv paper events: { type: "paper", id, title, authors, published, url, category, summary, source: "arxiv", at }',
+      },
+    },
+    tags: [
+      ...COMMON_TAGS,
+      {
+        id: 'live-arxiv-stream',
+        name: 'Live arXiv Updates',
+        description: 'Long-lived session streaming the newest arXiv submissions on a topic',
+        examples: ['Stream new motor-imagery papers from arXiv'],
+      },
+    ],
+    runtime: PIPE_RUNTIME,
+  }
+}
+
 function routerCard() {
   return card({
     agentName: 'router',
@@ -556,11 +750,15 @@ function main() {
   const cards = [
     starMapDemoCard(),
     sotaTrackerCard(),
+    datasetFinderCard(),
+    citationHunterCard(),
     graphExplorerCard(),
     litReviewCard(),
     clinicalTranslatorCard(),
     grantWriterCard(),
+    codeSuggesterCard(),
     paperFeedCard(),
+    paperUpdatesCard(),
     routerCard(),
     orchestratorCard(),
     ...roster.map(expertCard),

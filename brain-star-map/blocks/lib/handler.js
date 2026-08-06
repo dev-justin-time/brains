@@ -27,24 +27,28 @@ import {
 } from './engine.js'
 import { runOrchestrator } from './a2a.js'
 import { runPaperFeed } from './pipe.js'
+import { runPaperUpdates } from './paperupdates.js'
 import { runStarMapDemo } from './demo.js'
 import { runSotaTracker } from './sota.js'
+import { runDatasetFinder } from './datasetfinder.js'
+import { runCitationHunter } from './citationhunter.js'
 import { runLitReview } from './litreview.js'
 import { runGraphExplorer } from './graphexplorer.js'
 import { runClinicalTranslator } from './clinical.js'
 import { runGrantWriter } from './grantwriter.js'
+import { runCodeSuggester } from './codesuggester.js'
 
 export default async function handler(task, ctx) {
   const agentName = task?.agentName || process.env.BLOCKS_AGENT_NAME || 'router'
 
   // Pipe tasks (long-lived streaming sessions) take a different path: they
   // carry a caller-set duration and stream events until canceled or expired.
-  // Only paper_feed declares pipe support; anything else fails fast.
+  // Only paper_feed (corpus) and paper_updates (live arXiv) declare pipe
+  // support; anything else fails fast.
   if (task?.taskKind === 'pipe') {
-    if (agentName !== 'paper_feed') {
-      throw new Error(`Agent "${agentName}" does not support pipe tasks`)
-    }
-    return runPaperFeed(task, ctx)
+    if (agentName === 'paper_feed') return runPaperFeed(task, ctx)
+    if (agentName === 'paper_updates') return runPaperUpdates(task, ctx)
+    throw new Error(`Agent "${agentName}" does not support pipe tasks`)
   }
 
   // Free demo agent — LLM-free answers + the interactive star-map page as a
@@ -58,6 +62,18 @@ export default async function handler(task, ctx) {
   // table (data/benchmarks.json). Same input contract, no token stream.
   if (agentName === 'sota_tracker') {
     return runSotaTracker(task, ctx)
+  }
+
+  // Datasets directory agent — LLM-free answers from data/datasets.json
+  // ("which dataset for motor imagery?"). No stream, instant, zero model cost.
+  if (agentName === 'dataset_finder') {
+    return runDatasetFinder(task, ctx)
+  }
+
+  // Citation-style agent — LLM-free "who cites X?" over the star-map
+  // (keyword-co-occurrence proxy, labeled honestly). No stream.
+  if (agentName === 'citation_hunter') {
+    return runCitationHunter(task, ctx)
   }
 
   // Graph agent — LLM-free graph reasoning over the star-map (centrality,
@@ -115,6 +131,9 @@ export default async function handler(task, ctx) {
     } else if (agentName === 'grant_writer') {
       ctx?.reportStatus(`Drafting a proposal for "${question.slice(0, 80)}"…`)
       result = await runGrantWriter(task, ctx, emit)
+    } else if (agentName === 'code_suggester') {
+      ctx?.reportStatus(`Sketching a PyTorch skeleton for "${question.slice(0, 80)}"…`)
+      result = await runCodeSuggester(task, ctx, emit)
     } else {
       const agent = resolveAgent(agentName)
       result = await runExpert(agent, task, ctx, emit)
@@ -154,6 +173,14 @@ export default async function handler(task, ctx) {
         mimeType: 'application/json',
         outputId: 'draft',
         fileName: 'draft.json',
+      })
+    }
+    if (result.skeleton) {
+      artifacts.push({
+        data: JSON.stringify(result.skeleton, null, 2),
+        mimeType: 'application/json',
+        outputId: 'skeleton',
+        fileName: 'skeleton.json',
       })
     }
     return { artifacts }

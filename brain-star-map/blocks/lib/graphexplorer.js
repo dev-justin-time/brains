@@ -47,8 +47,9 @@ function buildIndex(graph) {
     adj.get(e.source).push(e.target)
     adj.get(e.target).push(e.source)
   }
-  return { nodes, byId, adj }
+  return { graph, nodes, byId, adj }
 }
+export { buildIndex }
 
 // ---------- graph algorithms ----------
 
