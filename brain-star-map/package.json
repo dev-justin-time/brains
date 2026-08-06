@@ -50,9 +50,11 @@
   "devDependencies": {
     "@blocks-network/cli": "^1.0.10",
     "@blocks-network/sdk": "^1.0.11",
+    "@ljharb/tsconfig": "^0.3.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.9.3",
     "vite": "^7.3.6"
   }
 }
