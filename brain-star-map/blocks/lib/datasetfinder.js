@@ -39,7 +39,7 @@ export function loadDatasets() {
 // a dataset, these add the datasets that benchmark that task. Keep it honest —
 // these mirror the benchmark seed's own task descriptions.
 const TOPIC_ALIASES = [
-  { ids: ['BCI IV-2a', 'BCI IV-2b', 'PhysioNet MI', 'OpenBMI', 'MOABB', 'WBCIC-MI', 'Cho2017', 'Zhou2016', 'Zuo2025'], re: /motor\s*imagery|\bmi\b|motor\s+imagination/i },
+  { ids: ['BCI IV-2a', 'BCI IV-2b', 'PhysioNet MI', 'OpenBMI', 'MOABB', 'WBCIC-MI', 'Cho2017', 'Zhou2016', 'Zuo2025'], re: /motor\s*imagery|motor\s+imagination|mi\s*(?:decod|classif|signal|dataset)/i },
   { ids: ['WAY-EEG-GAL'], re: /grasp\s*force|force\s*decod|kinematic|kinetic/i },
   { ids: ['CHB-MIT', 'TUH'], re: /seizure|epilep/i },
   { ids: ['DEAP', 'SEED'], re: /emotion|affective/i },

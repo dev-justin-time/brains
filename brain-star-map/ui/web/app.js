@@ -138,6 +138,7 @@
       return true;
     } catch (err) {
       authError.textContent = blocksErrorMessage(err);
+      pendingShowcase = null; // a cancelled/failed sign-in must not fire a stale showcase later
       return false;
     }
   }
@@ -1072,6 +1073,10 @@
   }
 
   buildShowcase();
+
+  // The answer-meta row right-aligns its Copy brief button.
+  const copyBriefEl = document.getElementById('copy-brief-btn');
+  if (copyBriefEl) copyBriefEl.style.marginLeft = 'auto';
 
   // A11y: expose auth state
   const authState = document.getElementById('auth-state');

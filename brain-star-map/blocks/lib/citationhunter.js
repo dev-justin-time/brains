@@ -41,6 +41,8 @@ const STOP_TOKENS = new Set([
   'what', 'which', 'most', 'top', 'related', 'connected', 'builds', 'build',
   'on', 'around', 'the', 'of', 'in', 'for', 'and', 'with', 'is', 'are', 'about',
   'show', 'list', 'network', 'graph',
+  // Count-question filler (keeps the title lookup clean after the "count" intent)
+  'does', 'how', 'many', 'have', 'has', 'total', 'count', 'number',
 ])
 
 // Find a paper by id or title within the graph (title match via token overlap
@@ -115,9 +117,11 @@ export function answerCitationQuestion(question) {
     }
   }
 
-  // Intent 3: citation count of a paper.
-  const countMatch = /(citation|connection|degree)\s*(?:count|number)?\s*(?:of|for)?\s*(.+)/.exec(q)
-  if (countMatch && /(citation|degree|connections?)\s*(count|number)?/.test(q)) {
+  // Intent 3: citation count of a paper. Word-bounded so "connections"
+  // doesn't leave stray junk in the capture, and filler tokens are filtered
+  // by findPaper's STOP_TOKENS.
+  const countMatch = /(citation|connections?|degree)\b[\s:]*(?:count|number)?[\s:]*(?:of|for)?[\s:]+(.+)/.exec(q)
+  if (countMatch) {
     const paper = findPaper(countMatch[2] || q, index)
     if (paper) {
       const n = index.adj.get(paper.id).length
