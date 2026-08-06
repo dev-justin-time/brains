@@ -14,7 +14,16 @@
   <div class="starfield" aria-hidden="true"></div>
 
   <!-- Local-dev only: served by `blocks dev`, returns 404 in production. -->
-  <script src="/__blocks_embed_dev.js"></script>
+  <script>
+  // `blocks dev` injects this helper locally. Do not request it from the
+  // production Pages host: its SPA fallback would return index.html as a
+  // misleading HTTP 200 script response.
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    var devScript = document.createElement('script');
+    devScript.src = '/__blocks_embed_dev.js';
+    document.head.appendChild(devScript);
+  }
+  </script>
   <!--
     Load the widget via a dynamically-created <script>, NOT document.write:
     Chrome refuses to execute a parser-blocking, cross-site script injected
@@ -37,7 +46,7 @@
       <span class="brand-mark" aria-hidden="true">✦</span>
       <div class="brand-text">
         <h1>Brain Star Map</h1>
-        <p>Research Console · 22 live agents · Network Neuroscience &amp; Connectomics</p>
+        <p>Research Console · 25 agents · Network Neuroscience &amp; Connectomics</p>
       </div>
     </div>
     <div id="auth-bar">
@@ -130,7 +139,7 @@
   </main>
 
   <footer class="footer">
-    Powered by <a href="https://blocks.ai" target="_blank" rel="noreferrer">Blocks Network</a> · 22 agents: router · orchestrator · 6 topic experts · lit_review · sota_tracker · dataset_finder · citation_hunter · graph_explorer · clinical_translator · grant_writer · code_suggester · paper_feed · paper_updates · star_map_demo · A2A demo trio
+    Powered by <a href="https://blocks.ai" target="_blank" rel="noreferrer">Blocks Network</a> · 25 agents: router · orchestrator · 6 topic experts · lit_review · sota_tracker · dataset_finder · citation_hunter · graph_explorer · clinical_translator · grant_writer · code_suggester · paper_feed · paper_updates · star_map_demo · A2A demo trio
   </footer>
 
   <script src="app.js" defer></script>

@@ -205,7 +205,7 @@
       inputs: [
         { id: 'question', label: 'Question', rows: 4, hint: 'A research question about the brain-technology corpus.',
           default: 'What are the best EEG motor-imagery decoding methods?' },
-        { id: 'specialists', label: 'Specialists (optional)', rows: 1, hint: 'Comma-separated agent names to call in parallel. Leave empty to auto-route to the top-2 experts.',
+        { id: 'specialists', label: 'Specialists (optional)', rows: 1, hint: 'Comma-separated agent names to call in parallel. Leave empty to auto-route to up to six relevant experts.',
           default: 'expert_connectomics,expert_bci_eeg' }
       ]
     },

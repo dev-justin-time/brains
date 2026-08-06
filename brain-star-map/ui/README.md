@@ -1,7 +1,7 @@
 # Brain Star Map — Research Console (`ui/`)
 
 A deployable web UI for the Blocks Network agents, scaffolded with
-`blocks init --mode webapp` for all 13 published agents and customized into a
+`blocks init --mode webapp` for all 25 published agents and customized into a
 star-map themed research console.
 
 ```
@@ -17,7 +17,7 @@ ui/
 ## What the UI does
 
 - **Sign in with Blocks** — popup OAuth via the embed-auth widget; one session
-  covers all 7 agents (`signInAndGetClients`). JWT (~60s, in-memory) +
+  covers all 25 agents (`signInAndGetClients`). JWT (~60s, in-memory) +
   refresh token (24h, partitioned localStorage), auto-refresh before expiry,
   and silent auto-resume on reload when the stored partition matches.
 - **Agent switcher** — chips for each agent; the console shows the agent's
@@ -74,7 +74,7 @@ advertises the UI on the agent's catalog page on Blocks Network.
 
 **Live deployment (verified):** `https://ui-c7w.pages.dev` (Cloudflare
 Pages). `ui/blocks.config.json` records `deployTarget: cloudflare` and
-`lastDeployedUrl`. The URL is registered in `identity.webApps` on all 9 agent
+`lastDeployedUrl`. The URL is registered in `identity.webApps` on all generated agent
 cards and confirmed in the registry.
 
 > **Headless note:** the card-update prompt reads the terminal, not piped

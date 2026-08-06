@@ -84,7 +84,7 @@ match the actual database — the same data the web app visualizes.
 | **Streams (request)** | Outbound `bytes` stream declared as `streams._default`; the handler streams answer tokens via `ctx.createStream({ direction:'outbound', format:'bytes' })` and `stream.write(token)`. |
 | **Streams (pipe)** | `paper_feed` (corpus stream) and `paper_updates` (live arXiv stream) declare `streams.feed` (events, `affinity: dedicated`) + `capabilities.taskKinds: ["pipe"]`; the handler opens it with `ctx.createStream({ format:'events', declaredStream:'feed' })` and streams events until `cancelSignal`/`isExpired`. `paper_updates` queries the live arXiv API (newest-first, paging + wrap-around so fresh submissions are picked up); the sleep helper checks the signal state first so a cancel always terminates the session. |
 | **Visibility** | Set at publish time: `blocks register` = private + free; `blocks publish --visibility public` to list in the catalog. |
-| **A2A (agent-to-agent)** | Any agent can call any agent. The SDK injects a pre-authenticated `ctx.taskClient` into every handler — the `orchestrator` uses it to fan out sub-tasks to specialists over the network and merge the results. Default fan-out auto-routes among all six experts (affinity-filtered, no top-2 cap); an explicit `specialists` input narrows it (see the A2A section below). |
+| **A2A (agent-to-agent)** | Any agent can call any agent. The SDK injects a pre-authenticated `ctx.taskClient` into every handler — the `orchestrator` uses it to fan out sub-tasks to specialists over the network and merge the results. Default fan-out auto-routes among up to six experts (affinity-filtered); an explicit `specialists` input is deduplicated, validated, and capped at six (see the A2A section below). |
 | **Communication + DB** | The router coordinates the specialists and both the web server and agents read/write the same SQLite DB (`data/agents.db`) — shared popular-question cache and the `agent_messages` log record every router→expert consult. |
 
 ## Quick start
@@ -96,7 +96,7 @@ npm run blocks:cards
 
 # 2. Validate every card against the official Blocks schema (offline)
 npm run blocks:check
-# → runs `blocks check` on all cards (8 generated + 3 A2A demo)
+# → runs `blocks check` on all cards (22 generated + 3 A2A demo)
 
 # 3. Prove the handler contract locally — no network required
 npm run blocks:test                 # router + full pipeline (real Ollama)
@@ -386,7 +386,7 @@ artifact. `node blocks/a2a-demo/my_orchestrator/trigger.mjs` returned:
 `npm run blocks:call -- orchestrator "What are graph neural networks used in
 connectomics?"` auto-routes offline among **all six experts** — every
 specialist whose keyword affinity scores > 0 is fanned out to in parallel
-(same `scoreTopicAffinity` signal as the router; no fixed top-2 cap, though an
+(same `scoreTopicAffinity` signal as the router; it is capped at six, though an
 explicit `specialists` partId or a focused single-topic question narrows it) —
 then merges a cited research brief. It returns **3 artifacts**: a merged
 `answer` brief, a deduped `sources` list, and a structured `report`
@@ -479,12 +479,12 @@ node scripts/remove-blocks-agent.mjs <agentName>   # SDK removeAgent()
 
 ### Invites vs. the live agents
 
-All 22 live agents (router, orchestrator, all six experts, `paper_feed`,
+All 25 live agents (router, orchestrator, all six experts, `paper_feed`,
 `paper_updates`, `star_map_demo`, `sota_tracker`, `dataset_finder`,
 `citation_hunter`, `lit_review`, `graph_explorer`, `clinical_translator`,
-`code_suggester`, `grant_writer`, demo trio) are **public** — public agents need
-no invites; any authenticated caller can use them. To gate one behind this invite flow,
-flip it private: `blocks publish --listing private --billing-mode paid`.
+`code_suggester`, `grant_writer`, the ADA trio, and the demo trio) are **public** —
+public agents need no invites; any authenticated caller can use them. To gate one
+behind this invite flow, flip it private: `blocks publish --listing private --billing-mode paid`.
 
 ## Streaming — request + pipe (live on the network)
 
@@ -767,13 +767,11 @@ npm run blocks:ada:harvest   # live: ada_harvest
 
 ## Pricing — live agents are paid ($0.02/$0.10)
 
-24 paid agents are published **public + paid** on the real network: twenty
-(router, orchestrator, six experts, `sota_tracker`, `dataset_finder`,
-`citation_hunter`, `graph_explorer`, `clinical_translator`, `code_suggester`,
-the ADA trio — `ada_syndicate`, `ada_fact_check`, `ada_harvest` — and the
-demo trio) at a flat **$0.02** per task, two premium agents — `lit_review` and
-`grant_writer` — at **$0.10/task** (multi-hop research + synthesis work), and
-two pipe feeds — `paper_feed` and `paper_updates` — at **$0.02/minute**.
+24 paid agents are published **public + paid** on the real network: the router,
+orchestrator, six experts, `sota_tracker`, `dataset_finder`, `citation_hunter`,
+`graph_explorer`, `clinical_translator`, `code_suggester`, the ADA trio, and the
+demo trio at a flat **$0.02** per task; `lit_review` and `grant_writer` are
+**$0.10/task**; and `paper_feed` and `paper_updates` are **$0.02/minute**.
 `star_map_demo` is the only **free** agent. All paid agents carry **3 free
 trial tasks** (or minutes) per consumer organization so anyone can still try
 before paying. You keep 85%, Blocks takes 15% (Stripe).
@@ -807,7 +805,7 @@ customized into a star-map themed research console exposing **all 25 agents**
 
 - **Live**: deployed to Cloudflare Pages at https://ui-c7w.pages.dev —
   visitors sign in with a Blocks account and the console calls the agents.
-  The URL is registered in `identity.webApps` on all 9 agent cards.
+  The URL is registered in `identity.webApps` on all generated agent cards.
 
 - **Auth**: Blocks embed-auth widget (OAuth popup, JWT + 24h refresh token,
   auto-resume on reload, per-origin partitioned storage). The scaffold's auth

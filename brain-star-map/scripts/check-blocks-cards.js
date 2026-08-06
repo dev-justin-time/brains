@@ -29,7 +29,11 @@ if (!cards.length) {
 
 const bin = findBlocksBin()
 console.log(`Using blocks CLI: ${bin}\n`)
-if (!fs.existsSync(bin)) {
+// `findBlocksBin()` may return a bare command name when the CLI is on PATH,
+// so fs.existsSync() is not sufficient. Probe through the same child-process
+// API used below and only treat an executable-not-found error as missing.
+const probe = spawnSync(bin, ['--version'], { encoding: 'utf8' })
+if (probe.error?.code === 'ENOENT') {
   console.error('blocks CLI not found. Install it or set BLOCKS_BIN (e.g. to ~/.blocks/bin/blocks.exe).')
   process.exit(1)
 }
@@ -40,9 +44,9 @@ for (const card of cards) {
   const out = (r.stdout || '').trim().split('\n').slice(-3).join('\n')
   console.log(`== ${path.relative(process.cwd(), card)}`)
   console.log(out)
-  if (r.status !== 0) {
+  if (r.error || r.status !== 0) {
     failures++
-    console.log((r.stderr || '').trim() || '[FAIL]')
+    console.log((r.error?.message || r.stderr || '').trim() || '[FAIL]')
   }
   console.log('')
 }

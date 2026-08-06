@@ -27,6 +27,7 @@ import { extractQuestion, agentNameFor } from './engine.js'
 // specialist generation (local LLM over a multi-paper context) measured
 // ~150-210s in live network runs.
 export const SUB_TASK_TIMEOUT_MS = 240_000
+export const MAX_AUTO_SPECIALISTS = 6
 
 /**
  * Call one agent and resolve its terminal outcome.
@@ -102,8 +103,8 @@ export async function runParallel(taskClient, calls, opts) {
 /**
  * Choose which specialists to fan out to — offline, no LLM call.
  *
- * Default: auto-route among ALL roster experts — every expert whose keyword
- * affinity scores > 0 is included (up to the whole roster, currently six),
+ * Default: auto-route among roster experts — every expert whose keyword
+ * affinity scores > 0 is included, capped at six specialists,
  * so a cross-topic question fans out to every relevant specialist instead of
  * a fixed top-2. Pass `topN` to cap the fan-out explicitly.
  *
@@ -116,11 +117,18 @@ export async function runParallel(taskClient, calls, opts) {
 export function pickSpecialists(question, { topN } = {}) {
   const roster = rosterInfo()
   const scored = scoreTopicAffinity(question, roster)
-  // No cap given -> route to every expert with any affinity (up to the whole
-  // roster). Explicit topN still honors a smaller fan-out.
-  const limit = topN ?? roster.length
+  const requested = topN === undefined ? MAX_AUTO_SPECIALISTS : Number(topN)
+  const safeTopN = Number.isFinite(requested) && requested > 0
+    ? Math.floor(requested)
+    : MAX_AUTO_SPECIALISTS
+  // No cap given -> route to every expert with any affinity, capped at six.
+  // Explicit topN still honors a smaller fan-out.
+  // Keep the default fan-out bounded even if the corpus later grows beyond
+  // the six specialist agents the orchestrator is designed to coordinate.
+  // An explicit topN may request a smaller limit, but never a larger one.
+  const limit = Math.min(safeTopN, MAX_AUTO_SPECIALISTS, roster.length)
   const chosen = scored.filter(s => s.kwScore > 0).slice(0, limit)
-  const list = chosen.length ? chosen : scored.slice(0, Math.min(limit, roster.length))
+  const list = chosen.length ? chosen : scored.slice(0, limit)
   return list.map(s => agentNameFor(s.agent.id))
 }
 
@@ -199,7 +207,15 @@ export async function runOrchestrator(task, ctx, emit, { subTaskTimeoutMs = SUB_
   const specialistsPart = task?.requestParts?.find(p => p.partId === 'specialists')
   let agents = []
   if (specialistsPart?.text?.trim()) {
-    agents = specialistsPart.text.split(',').map(s => s.trim()).filter(Boolean)
+    // Explicit lists are also used by offline A2A tests and by callers that
+    // may target a separately published expert roster. Enforce the published
+    // specialist naming contract without importing a fixed live roster here.
+    agents = [...new Set(specialistsPart.text
+      .split(',')
+      .map(s => s.trim())
+      .filter(name => /^expert_[a-zA-Z0-9_]+$/.test(name)))]
+      .slice(0, MAX_AUTO_SPECIALISTS)
+    if (!agents.length) throw new Error('No valid specialists selected — use expert_* agent names.')
   } else {
     agents = pickSpecialists(question)
   }
