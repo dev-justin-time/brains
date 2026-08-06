@@ -16,8 +16,14 @@ import { allPapers } from '../../server/db.js'
 
 // Sleep that aborts with the task's cancel signal (fires on caller cancel OR
 // when the pipe duration expires). Mirrors the guide's stock-sim example.
+// Checks the signal state FIRST — an 'abort' listener added to an
+// already-aborted signal would never fire, and the session would spin forever.
 function sleep(ms, signal) {
   return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+      return
+    }
     const t = setTimeout(resolve, ms)
     signal.addEventListener('abort', () => {
       clearTimeout(t)

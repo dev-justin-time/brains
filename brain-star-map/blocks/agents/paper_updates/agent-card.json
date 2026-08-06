@@ -1,0 +1,73 @@
+{
+  "identity": {
+    "agentName": "paper_updates",
+    "displayName": "Paper Updates — Live arXiv Stream",
+    "description": "Pipe-streaming agent: a live \"what’s new\" feed from arXiv. Send a topic and a duration (1 minute – 30 days), and receive the NEWEST arXiv submissions on that topic as structured events (title, authors, published date, abstract snippet, category, arXiv URL) in real time, with fresh submissions picked up as the session runs. Evolves paper_feed (corpus stream) with a live source.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "pipe"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "topic",
+        "description": "A topic keyword or phrase for the live arXiv query (e.g. \"motor imagery EEG\", comma-separated terms are OR-ed)",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "brain-computer interface, motor imagery"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "summary",
+        "description": "Session summary as structured JSON (topic, streamed count, first/last published dates)",
+        "contentType": "application/json",
+        "guaranteed": true,
+        "schema": {
+          "type": "object"
+        }
+      }
+    ]
+  },
+  "streams": {
+    "feed": {
+      "direction": "outbound",
+      "format": "events",
+      "affinity": "dedicated",
+      "description": "Live arXiv paper events: { type: \"paper\", id, title, authors, published, url, category, summary, source: \"arxiv\", at }"
+    }
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "live-arxiv-stream",
+      "name": "Live arXiv Updates",
+      "description": "Long-lived session streaming the newest arXiv submissions on a topic",
+      "examples": [
+        "Stream new motor-imagery papers from arXiv"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 2592000
+  }
+}

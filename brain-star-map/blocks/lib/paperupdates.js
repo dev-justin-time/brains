@@ -19,9 +19,15 @@ import { extractTopic } from './pipe.js'
 import { arxivQuery, buildTopicQuery, snippet } from './arxiv.js'
 
 // Sleep that aborts with the task's cancel signal (fires on caller cancel OR
-// when the pipe duration expires). Same helper as paper_feed.
+// when the pipe duration expires). Same helper as paper_feed. Checks the
+// signal state FIRST — an 'abort' listener added to an already-aborted signal
+// would never fire, and the session would spin forever.
 function sleep(ms, signal) {
   return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+      return
+    }
     const t = setTimeout(resolve, ms)
     signal.addEventListener('abort', () => {
       clearTimeout(t)
@@ -113,10 +119,17 @@ export async function runPaperUpdates(task, ctx, { intervalMs = 2500, maxStreame
         await sleep(intervalMs, ctx.cancelSignal)
       }
 
-      // Advance the page; wrap to 0 once the result set is exhausted so fresh
-      // submissions are discovered.
+      // Advance the page. When a pass produced nothing new (all already seen
+      // — i.e. we've caught up) or the result set is exhausted, wrap back to
+      // page 0 and WAIT: this poll cycle is how fresh submissions are picked
+      // up. The sleep also yields to the event loop, so the caller's cancel
+      // signal (and any other timers) can always fire — without it, an
+      // instant-returning fetcher would starve the event loop forever.
       start += pageSize
-      if (batch.length < pageSize || newInPage === 0) start = 0
+      if (batch.length < pageSize || newInPage === 0) {
+        start = 0
+        await sleep(intervalMs, ctx.cancelSignal)
+      }
     }
   } catch (err) {
     if (err?.name !== 'AbortError') throw err

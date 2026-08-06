@@ -1,0 +1,75 @@
+{
+  "identity": {
+    "agentName": "citation_hunter",
+    "displayName": "Citation Hunter — Who Cites Whom",
+    "description": "Answers citation-style questions over the star-map: \"most cited papers in Connectomics\", \"who cites <paper>?\", \"how connected is <paper>?\". LLM-free — pure graph computation, instant and near-free. Edges are the keyword-co-occurrence proxy (the star-map’s citation graph is incomplete); every answer says so.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "A citation-style question: \"most cited papers in Connectomics\", \"who cites <paper title>?\", \"how many connections does <paper> have?\"",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "Who cites the DRDCAE-STGNN motor imagery paper?"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "Citation-style answer from the star-map (proxy connections, honestly labeled)",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "Related papers as structured JSON (title, year, arXiv URL)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array"
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "citation-hunter",
+      "name": "Citation-Style Queries",
+      "description": "Most-cited / who-cites queries over the star-map proxy graph",
+      "examples": [
+        "Most cited papers in Connectomics",
+        "Who cites a specific paper?"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}

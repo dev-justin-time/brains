@@ -31,6 +31,11 @@
     "blocks:graph:test": "node blocks/test-graphexplorer.mjs",
     "blocks:clinical:test": "node blocks/test-clinical.mjs",
     "blocks:grant:test": "node blocks/test-grantwriter.mjs",
+    "blocks:dataset:build": "node scripts/build-datasets.js",
+    "blocks:dataset:test": "node blocks/test-datasetfinder.mjs",
+    "blocks:citation:test": "node blocks/test-citationhunter.mjs",
+    "blocks:code:test": "node blocks/test-codesuggester.mjs",
+    "blocks:updates:test": "node blocks/test-paperupdates.mjs",
     "blocks:demo:call": "node scripts/call-blocks-agent.mjs star_map_demo"
   },
   "dependencies": {

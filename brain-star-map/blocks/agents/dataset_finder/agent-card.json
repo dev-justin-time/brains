@@ -1,0 +1,75 @@
+{
+  "identity": {
+    "agentName": "dataset_finder",
+    "displayName": "Dataset Finder — Dataset Directory",
+    "description": "Finds public datasets for brain-tech research: \"which dataset for motor imagery?\" or \"details on BCI IV-2a\". Answers from a directory seeded from the corpus abstracts (modality, task, subjects/classes, benchmark SOTA, and the corpus papers that use each dataset). LLM-free — pure retrieval from data/datasets.json, instant and near-free.",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "Brain Citation Star Map"
+    }
+  },
+  "capabilities": {
+    "taskKinds": [
+      "request"
+    ]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "question",
+        "description": "Which dataset for a task? Or a dataset name for its full card (e.g. \"details on WAY-EEG-GAL\", \"dataset for seizure detection\", \"all datasets\")",
+        "contentType": "text/plain",
+        "required": true,
+        "example": "Which dataset should I use for cross-subject motor imagery decoding?"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "answer",
+        "description": "Ranked dataset cards (id, task, modality, subjects/classes, license, benchmark SOTA)",
+        "contentType": "text/plain",
+        "guaranteed": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "id": "sources",
+        "description": "Corpus papers that use/mention the datasets, as structured JSON (title, year, arXiv URL)",
+        "contentType": "application/json",
+        "guaranteed": false,
+        "schema": {
+          "type": "array"
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "brain-tech",
+      "name": "Brain Technology",
+      "description": "Research on BCI, EEG decoding, neural decoding, connectomics and deep learning"
+    },
+    {
+      "id": "research-assistant",
+      "name": "Research Assistant",
+      "description": "Answers questions with citations to a 215-paper arXiv corpus"
+    },
+    {
+      "id": "dataset-directory",
+      "name": "Dataset Directory",
+      "description": "Research question -> matching public datasets with metadata and benchmark SOTA",
+      "examples": [
+        "Which dataset for motor imagery?",
+        "Details on BCI IV-2a"
+      ]
+    }
+  ],
+  "runtime": {
+    "handler": "../../lib/handler.js",
+    "handlerExport": "default",
+    "concurrency": 1,
+    "expectedInstances": 1,
+    "maxRunningTimeSec": 300
+  }
+}
