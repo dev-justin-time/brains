@@ -1,0 +1,432 @@
+This is the best choice if you want a hosted dashboard and automatic deployment without learning all of AWS.
+────────────────────────────────────────────────────────────────────────────────
+3. AWS ECS/Fargate — strongest production platform
+// text
+ECR image
+   ↓
+ECS service, desired count = 1
+   ↓
+Node supervisor + 25 Blocks processes
+AWS would provide:
+- Automatic task replacement.
+- Secrets Manager or Parameter Store.
+- CloudWatch logs.
+- IAM access control.
+- VPC networking.
+- EFS or another persistent storage option.
+This is robust, but the initial setup is significantly larger: Docker image, ECR, ECS cluster, task definition, IAM roles, networking, logs, and secrets.
+Pros: most mature production controls and future scalability.
+Cons: highest setup complexity and less predictable cost.
+Use this if you expect multiple environments, stronger compliance requirements, or eventual service separation.
+────────────────────────────────────────────────────────────────────────────────
+Important runtime detail: Ollama
+Your code defaults to:
+// text
+http://localhost:11434
+The hosted setup must either:
+1. Run Ollama on the same host;
+2. Set  OLLAMA_HOST  to a separate always-on Ollama server; or
+3. Use the agents’ retrieval-only/LLM-free fallback paths.
+The 25 Node/Blocks processes are relatively lightweight. Ollama is likely to be the larger memory requirement.
+────────────────────────────────────────────────────────────────────────────────
+What I would avoid
+Do not put the supervisor itself on:
+- Cloudflare Workers;
+- Cloudflare Pages;
+- standard AWS Lambda;
+- Vercel serverless functions;
+- any free tier that sleeps or scales to zero.
+These platforms are suitable for request handlers, not a Node supervisor with persistent child processes.
+────────────────────────────────────────────────────────────────────────────────
+Recommended migration plan
+1. Rotate all credentials first because they were exposed earlier.
+2. Create a Linux VPS or managed container service.
+3. Build a deployment image/package without  .env  files or secrets.
+4. Inject  BLOCKS_API_KEY  and any Cloudflare/R2 values through the host’s secret mechanism.
+5. Run the supervisor as a single always-on service.
+6. Persist  data/agents.db  and logs.
+7. Add health checks for the supervisor and agent count.
+8. Verify a free  star_map_demo  task end to end.
+9. Keep the UI at  https://ui-c7w.pages.dev .
+10. Add Ollama separately only after the core agent network is stable.
+My decision recommendation
+- Choose Linux VPS for the lowest-cost, lowest-risk migration.
+- Choose Northflank if you prefer managed deployment and logs.
+- Choose ECS/Fargate only if you already use AWS or need enterprise infrastructure.
+No files or deployments were changed during this comparison
+Shortlist for your 25-agent network
+The Cloudflare Pages UI can stay where it is. Only the long-running Blocks runtime needs to move.
+┌────────────────┬──────┬───────────────────┬───────────────────────┬──────────────────────────┐
+│ Option         │ Fit  │ Approx. operating │ Maintenance           │ Best for                 │
+│                │      │ cost*             │                       │                          │
+├────────────────┼──────┼───────────────────┼───────────────────────┼──────────────────────────┤
+│ Linux VPS      │ Exce │ Low: roughly      │ You manage OS         │ Lowest cost and fewest   │
+│                │ llen │ $5–15/month for   │ updates, backups,     │ code changes             │
+│                │ t    │ Node-only         │ monitoring            │                          │
+│ Northflank     │ Very │ Low–moderate:     │ Platform manages      │ Easier deployment        │
+│ managed        │ good │ roughly           │ host, restarts, logs, │ without managing Linux   │
+│ container      │      │ $10–30+/month     │ secrets               │                          │
+│ AWS            │ Exce │ Moderate and      │ More setup; AWS       │ Production, compliance,  │
+│ ECS/Fargate    │ llen │ usage-dependent   │ manages               │ scaling, enterprise      │
+│                │ t    │                   │ infrastructure        │ controls                 │
+└────────────────┴──────┴───────────────────┴───────────────────────┴──────────────────────────┘
+*Prices are rough planning ranges, not quotes. RAM, storage, traffic, backups, and Ollama can change the total.
+────────────────────────────────────────────────────────────────────────────────
+1. Linux VPS — my recommendation for your current project
+// text
+Cloudflare Pages UI
+        ↓
+Linux VPS
+  systemd
+    Node supervisor
+      25 Blocks processes
+A VPS is the closest equivalent to your current Windows setup:
+- Install Node.js and the Blocks CLI.
+- Run  scripts/supervise-all-agents.js  with  systemd .
+-  systemd  restarts the supervisor after crashes and reboots.
+- Keep  data/agents.db , logs, cards, and artifacts on persistent disk.
+- Use a protected systemd environment file for secrets.
+- Use log rotation and automated backups.
+A suitable starting size would be approximately 2 vCPU and 4 GB RAM for the Node/Blocks processes alone. If Ollama runs on the same machine, plan for more memory or move Ollama to a separate host.
+Pros: cheapest, simplest, no child-process restrictions.
+Cons: you handle OS patching, backups, firewall rules, and monitoring.
+────────────────────────────────────────────────────────────────────────────────
+2. Northflank — easiest managed-container path
+Package the supervisor as one Docker service:
+// text
+Northflank service
+  └── Node supervisor
+       └── 25 Blocks processes
+You would get:
+- Git-based deployments.
+- Dashboard-managed secrets.
+- Centralized logs.
+- Automatic container restarts.
+- No Windows startup scripts or SSH-based process management.
+Important configuration:
+- Use an always-on paid service, not a sleeping/free tier.
+- Set sufficient CPU and memory for 25 processes.
+- Configure a persistent volume if retaining SQLite state and local logs.
+- Keep the service at one replica while using SQLite.
+- Move to an external database before horizontally scaling replicas.
+Pros: good balance of simplicity and control.
+Cons: platform-specific container configuration and persistent-volume considerations.
+This is the best choice if you want a hosted dashboard and automatic deployment without learning all of AWS.
+────────────────────────────────────────────────────────────────────────────────
+3. AWS ECS/Fargate — strongest production platform
+// text
+ECR image
+   ↓
+ECS service, desired count = 1
+   ↓
+Node supervisor + 25 Blocks processes
+AWS would provide:
+- Automatic task replacement.
+- Secrets Manager or Parameter Store.
+- CloudWatch logs.
+- IAM access control.
+- VPC networking.
+- EFS or another persistent storage option.
+This is robust, but the initial setup is significantly larger: Docker image, ECR, ECS cluster, task definition, IAM roles, networking, logs, and secrets.
+Pros: most mature production controls and future scalability.
+Cons: highest setup complexity and less predictable cost.
+Use this if you expect multiple environments, stronger compliance requirements, or eventual service separation.
+────────────────────────────────────────────────────────────────────────────────
+Important runtime detail: Ollama
+Your code defaults to:
+// text
+http://localhost:11434
+The hosted setup must either:
+1. Run Ollama on the same host;
+2. Set  OLLAMA_HOST  to a separate always-on Ollama server; or
+3. Use the agents’ retrieval-only/LLM-free fallback paths.
+The 25 Node/Blocks processes are relatively lightweight. Ollama is likely to be the larger memory requirement.
+────────────────────────────────────────────────────────────────────────────────
+What I would avoid
+Do not put the supervisor itself on:
+- Cloudflare Workers;
+- Cloudflare Pages;
+- standard AWS Lambda;
+- Vercel serverless functions;
+- any free tier that sleeps or scales to zero.
+These platforms are suitable for request handlers, not a Node supervisor with persistent child processes.
+────────────────────────────────────────────────────────────────────────────────
+Recommended migration plan
+1. Rotate all credentials first because they were exposed earlier.
+2. Create a Linux VPS or managed container service.
+3. Build a deployment image/package without  .env  files or secrets.
+4. Inject  BLOCKS_API_KEY  and any Cloudflare/R2 values through the host’s secret mechanism.
+5. Run the supervisor as a single always-on service.
+6. Persist  data/agents.db  and logs.
+7. Add health checks for the supervisor and agent count.
+8. Verify a free  star_map_demo  task end to end.
+9. Keep the UI at  https://ui-c7w.pages.dev .
+10. Add Ollama separately only after the core agent network is stable.
+My decision recommendation
+- Choose Linux VPS for the lowest-cost, lowest-risk migration.
+- Choose Northflank if you prefer managed deployment and logs.
+- Choose ECS/Fargate only if you already use AWS or need enterprise infrastructure.
+No files or deployments were changed during this comparison.
+[05:34 PM]
+I’ll add a safe project-level restart command that stops only this project’s supervisor tree, clears stale PID markers, starts the detached supervisor again, and verifies the watchdog/agent counts. I’ll first inspect the existing launcher and process conventions so it does not create duplicate supervisors or kill unrelated Node processes.
+• TODOs
+☐  Inspect existing supervisor, launcher, PID, and package-script conventions
+☐  Implement a safe cross-platform agent restart script and package command
+☐  Review the script for process-safety and project conventions
+☐  Run syntax, help, and non-destructive validation checks
+• Read brain-star-map/scripts/supervise-all-agents.js, brain-star-map/scripts/start-supervisor.vbs, brain-star-map/scripts/start-router-at-logon.vbs, brain-star-map/package.json, brain-star-map/.gitignore
+Design a safe cross-platform restart script for this Windows-first Node project. It supervises 25 Blocks agents using blocks/logs/supervisor.pid, per-agent *.watchdog.pid, and *.child.pid. Existing supervisor handles graceful SIGTERM, Windows requires taskkill /PID /T /F to avoid orphaning blocks children. The script should stop only PIDs recorded by this project, clean stale markers, launch scripts/supervise-all-agents.js detached, support --dry-run/help, and avoid printing secrets. Review relevant files and flag edge cases or minimal implementation recommendations.
+• Read brain-star-map/scripts/supervise-all-agents.js, brain-star-map/scripts/watch-blocks-agent.js, brain-star-map/scripts/start-supervisor.vbs, brain-star-map/package.json, .vscode/settings.json
+Here is the recommended approach for the cross-platform restart script, designed as a Node script (e.g.,  scripts/restart.js ) to match the stack.
+Recommended Implementation Logic
+1. CLI Parsing: Intercept  --help  (print usage, exit) and  --dry-run  (flag for logging-only mode).
+2. PID Discovery: Scan  blocks/logs/  for  supervisor.pid ,  *.watchdog.pid , and  *.child.pid . Read and deduplicate the integer PIDs.
+3. Targeted Shutdown Order:
+- Crucial: Kill the Supervisor first. If you kill a watchdog first, the living supervisor will immediately schedule a restart.
+- Kill Watchdogs second.
+- Kill Children last (catch any orphans).
+4. Cross-Platform Kill & Clean:
+- Filter out  process.pid .
+- Windows: Use  spawnSync('taskkill', ['/PID', pid, '/T', '/F']) .
+- Unix: Use  process.kill(pid, 'SIGKILL')  (since you want a guaranteed stop before restart).
+- Delete the  .pid  files using  fs.unlinkSync() .
+5. Detached Relaunch:
+- Windows:  spawn('wscript', ['scripts/start-supervisor.vbs'], { detached: true, stdio: 'ignore' }) 
+- Unix:  spawn(process.execPath, ['scripts/supervise-all-agents.js'], { detached: true, stdio: 'ignore' }) 
+- Call  unref()  on the spawned child and exit the restart script.
+Edge Cases & Recommendations to Flag
+- Stale PID OS Reuse (Danger): If an agent crashed hard and the OS reused its PID for a system process, blinding killing it is dangerous. Recommendation: Before killing, verify the process is a Node/Blocks process using  tasklist /FI "PID eq <pid>"  (Windows) or  ps -p <pid>  (Unix).
+- Double-Kill Logs:  taskkill /T /F  on a parent inherently kills its children. If you run  taskkill  on a watchdog, its child PID might already be dead by the time you process the  *.child.pid  file. Ignore  ESRCH  (Unix) or  taskkill  exit code 128 (Windows).
+- Secret Leakage: Ensure your dry-run console logs only output the PIDs, file names, and command strings. Never pass or spread  process.env  into the  console.log  statements.
+- Race Condition: Wait a brief moment (e.g.,  setTimeout  for 1-2 seconds) between killing the processes and launching the new supervisor to ensure OS port locks and file locks on  blocks/logs/*.log  are fully released.
+The existing supervisor already has the right crash-recovery behavior, so the restart command should restart the supervisor tree, not kill  blocks.exe  globally. I’ll add a targeted Node script that uses only this project’s PID files, supports  --dry-run / --help , handles Windows and Unix-like systems, and relaunches the supervisor detached.
+• TODOs
+✓  Inspect existing supervisor, launcher, PID, and package-script conventions
+☐  Implement a safe cross-platform agent restart script and package command
+☐  Review the script for process-safety and project conventions
+☐  Run syntax, help, and non-destructive validation checks
+• Create brain-star-map\scripts\restart-agents.js
+• Edit brain-star-map\package.json
+-     "blocks:watch:all": "node scripts/supervise-all-agents.js"
+- 
++     "blocks:watch:all": "node scripts/supervise-all-agents.js",
++     "blocks:restart": "node scripts/restart-agents.js"
++
+The restart script is in place and exposed as  npm run blocks:restart . It deliberately avoids image-wide kills such as  taskkill /IM node.exe ; it uses only the supervisor/watchdog/child PID files under  blocks/logs/ . I’m now reviewing it and running non-destructive checks.
+• TODOs
+✓  Inspect existing supervisor, launcher, PID, and package-script conventions
+✓  Implement a safe cross-platform agent restart script and package command
+☐  Review the script for process-safety and project conventions
+☐  Run syntax, help, and non-destructive validation checks
+Review the new brain-star-map/scripts/restart-agents.js and package.json blocks:restart command. Focus on process-safety, Windows behavior, PID reuse, duplicate supervisor prevention, stale PID handling, and whether the script could unexpectedly kill unrelated processes. Report actionable issues only.
+Actionable issues:
+- High: PID reuse remains unsafe. Validate the executable path/command line against this project ( supervise-all-agents.js ,  watch-blocks-agent.js , or the expected Blocks binary), not just  node / blocks  image names. The current check could kill an unrelated Node/Blocks process whose PID was reused.
+- Medium: Unix shutdown is racy. The script waits 500 ms, but the supervisor’s own graceful shutdown waits 1.5 seconds. Poll recorded PIDs until they exit, with a bounded timeout, before launching the replacement supervisor.
+- Medium:  start-supervisor.vbs  contains hard-coded  C:\Users\dividicus\...  and Node paths. Calling it from the new script can restart a different/stale checkout—or fail entirely—when moved to another host. Make the VBS derive its own directory, or launch the computed  ROOT / SUPERVISOR  path directly.
+- Low: The post-launch 1.5-second verification can produce a false failure on a slow machine. Poll for the supervisor PID with a timeout rather than using one fixed sleep.
+The review found three real edge cases, so I’m tightening the implementation before calling it complete:
+- verify recorded Node PIDs by command line, not only by  node.exe ;
+- wait for the old supervisor tree to fully exit instead of using a fixed short delay;
+- remove the hard-coded machine path from the Windows launcher and make it derive its repository location.
+• Edit brain-star-map\scripts\restart-agents.js
+- // Return a small, non-secret process description. On Windows, tasklist does
+- // not expose command lines, but the image-name check still prevents this
+- // script from killing a recorded PID that has become an unrelated process.
+- function processInfo(pid) {
+-   if (isWindows) {
+-     const result = spawnSync('tasklist.exe', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], {
+-       encoding: 'utf8',
+-       windowsHide: true,
+-     })
+-     if (result.error || result.status !== 0) return null
+-     const line = String(result.stdout || '').trim().split(/\r?\n/).find(Boolean)
+-     if (!line || /^INFO:/i.test(line)) return null
+-     const image = line.split(',')[0]?.replace(/^"|"$/g, '') || ''
+-     return { image, allowed: /^(node|blocks)(\.exe)?$/i.test(image) }
+-   }
+- 
+-   const result = spawnSync('ps', ['-p', String(pid), '-o', 'comm='], { encoding: 'utf8' })
+-   if (result.error || result.status !== 0) return null
+-   const image = String(result.stdout || '').trim()
+-   return image ? { image, allowed: /(^|\/)(node|blocks)(\.exe)?$/i.test(image) } : null
+- }
+- 
++ function normalize(value) {
++   return String(value || '').replaceAll('\\\\', '/').toLowerCase()
++ }
++ 
++ function projectCommand(value) {
++   const command = normalize(value)
++   const root = normalize(ROOT)
++   return command.includes(root) && (
++     command.includes('supervise-all-agents.js') ||
++     command.includes('watch-blocks-agent.js')
++   )
++ }
++ 
++ function windowsCommandLine(pid) {
++   // WMIC is present on many Windows installations; PowerShell/CIM is the
++   // fallback on newer installations where WMIC has been removed. Both calls
++   // return only process metadata and never include environment variables.
++   const wmic = spawnSync('wmic.exe', [
++     'process', 'where', `ProcessId=${pid}`, 'get', 'CommandLine,ExecutablePath', '/format:list'
++   ], { encoding: 'utf8', windowsHide: true })
++   if (!wmic.error && wmic.status === 0 && wmic.stdout) {
++     const fields = Object.fromEntries(String(wmic.stdout).split(/\r?\n/)
++       .map(line => line.match(/^([^=]+)=(.*)$/))
++       .filter(Boolean)
++       .map(match => [match[1], match[2]]))
++     if (fields.CommandLine || fields.ExecutablePath) return fields
++   }
++ 
++   const ps = spawnSync('powershell.exe', [
++     '-NoProfile', '-NonInteractive', '-Command',
++     `(Get-CimInstance Win32_Process -Filter \"ProcessId = ${pid}\") | ForEach-Object { \"$($_.ExecutablePath)|$($_.CommandLine)\" }`
++   ], { encoding: 'utf8', windowsHide: true })
++   if (!ps.error && ps.status === 0 && ps.stdout) {
++     const [executablePath, ...commandParts] = String(ps.stdout).trim().split('|')
++     if (executablePath || commandParts.length) {
++       return { ExecutablePath: executablePath, CommandLine: commandParts.join('|') }
++     }
++   }
++   return null
++ }
++ 
++ // Return a small, non-secret process description. A recorded Node PID must
++ // also point back to this checkout; image-name checks alone are unsafe after
++ // an OS PID has been reused by another Node process.
++ function processInfo(pid) {
++   if (isWindows) {
++     const result = spawnSync('tasklist.exe', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], {
++       encoding: 'utf8',
++       windowsHide: true,
++     })
++     if (result.error || result.status !== 0) return null
++     const line = String(result.stdout || '').trim().split(/\r?\n/).find(Boolean)
++     if (!line || /^INFO:/i.test(line)) return null
++     const image = line.split(',')[0]?.replace(/^"|"$/g, '') || ''
++     if (!/^(node|blocks)(\.exe)?$/i.test(image)) return { image, allowed: false, identityVerified: true }
++     const details = windowsCommandLine(pid)
++     if (!details) return { image, allowed: false, identityVerified: false }
++     const executable = details.ExecutablePath || ''
++     const command = details.CommandLine || ''
++     const isBlocks = /^blocks(\.exe)?$/i.test(image)
++     const allowed = isBlocks
++       ? /(^|[\\/])blocks(\.exe)?$/i.test(executable || image)
++       : projectCommand(command)
++     return { image, command, allowed, identityVerified: true }
++   }
++ 
++   const result = spawnSync('ps', ['-p', String(pid), '-o', 'comm=,args='], { encoding: 'utf8' })
++   if (result.error || result.status !== 0) return null
++   const line = String(result.stdout || '').trim()
++   if (!line) return null
++   const image = line.split(/\s+/)[0]
++   const command = line.slice(image.length).trim()
++   const isBlocks = /(^|\\/)(node|blocks)(\\.exe)?$/i.test(image)
++   return { image, command, allowed: isBlocks && (/blocks(\\.exe)?$/i.test(image) || projectCommand(command)), identityVerified: true }
++ }
++ 
++ function pidAlive(pid) {
++   if (isWindows) {
++     const result = spawnSync('tasklist.exe', ['/FI', `PID eq ${pid}`, '/NH'], {
++       encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'ignore']
++     })
++     return !result.error && result.status === 0 && !/^INFO:/im.test(String(result.stdout || '').trim())
++   }
++   try { process.kill(pid, 0); return true } catch { return false }
++ }
++ 
+ 
+- function cleanDeadPidFiles() {
+-   for (const file of pidFiles()) {
+-     const pid = pidFromFile(file)
+-     if (!pid || !processInfo(pid)) {
+-       try {
+-         fs.unlinkSync(file)
+-         log(`removed stale ${path.basename(file)}`)
+-       } catch { /* another process may have cleaned it */ }
+-     }
+-   }
+- }
+- 
++ function cleanDeadPidFiles() {
++   for (const file of pidFiles()) {
++     const pid = pidFromFile(file)
++     if (!pid || !pidAlive(pid)) {
++       try {
++         fs.unlinkSync(file)
++         log(`removed stale ${path.basename(file)}`)
++       } catch { /* another process may have cleaned it */ }
++     }
++   }
++ }
++ 
++ async function waitForPidsToStop(records, timeoutMs = 10_000) {
++   const deadline = Date.now() + timeoutMs
++   while (Date.now() < deadline) {
++     const alive = records.filter(record => pidAlive(record.pid))
++     if (!alive.length) return true
++     await sleep(250)
++   }
++   return records.every(record => !pidAlive(record.pid))
++ }
++ 
++ async function waitForSupervisor(timeoutMs = 10_000) {
++   const file = path.join(LOG_DIR, 'supervisor.pid')
++   const deadline = Date.now() + timeoutMs
++   while (Date.now() < deadline) {
++     const pid = pidFromFile(file)
++     if (pid && processInfo(pid)?.allowed) return pid
++     await sleep(250)
++   }
++   return null
++ }
++ 
+ 
+-   await sleep(isWindows ? 1_500 : 500)
+-   cleanDeadPidFiles()
+-   log('starting detached supervisor')
+-   await launchSupervisor()
+-   await sleep(1_500)
+- 
+-   const supervisorPid = pidFromFile(path.join(LOG_DIR, 'supervisor.pid'))
+-   if (!supervisorPid || !processInfo(supervisorPid)?.allowed) {
+-     console.error('[restart] supervisor did not create a live PID marker')
+-     process.exit(1)
+-   }
+-   log(`supervisor restarted (PID ${supervisorPid}); watchdogs will come online shortly`)
+- 
++   if (!(await waitForPidsToStop(records))) {
++     console.error('[restart] one or more recorded processes did not stop; refusing to start a duplicate supervisor')
++     process.exit(1)
++   }
++   cleanDeadPidFiles()
++   log('starting detached supervisor')
++   await launchSupervisor()
++ 
++   const supervisorPid = await waitForSupervisor()
++   if (!supervisorPid) {
++     console.error('[restart] supervisor did not create a verified live PID marker')
++     process.exit(1)
++   }
++   log(`supervisor restarted (PID ${supervisorPid}); watchdogs will come online shortly`)
++
+• Edit brain-star-map\scripts\start-supervisor.vbs
++ ' Detached launcher for scripts/supervise-all-agents.js.
++ '
++ ' Resolves this VBS file's directory so the launcher works after the project is
++ ' moved to another Windows host or checkout path. It runs hidden and does not
++ ' wait, so the supervisor survives the launching shell.
++ '
++ ' Usage:  wscript scripts\start-supervisor.vbs
++ 
++ Set sh = CreateObject("WScript.Shell")
++ Set fso = CreateObject("Scripting.FileSystemObject")
++ repo = fso.GetParentFolderName(fso.GetParentFolderName(WScript.ScriptFullName))
++ node = sh.ExpandEnvironmentStrings("%ProgramFiles%") & "\nodejs\node.exe"
++ script = repo & "\scripts\supervise-all-agents.js"
++ sh.CurrentDirectory = repo
++ sh.Run """" & node & """ """ & script & """", 0, False
++
+• Read brain-star-map/scripts/restart-agents.js, brain-star-map/scripts/start-supervisor.vbs, brain-star-map/package.js

@@ -43,7 +43,8 @@
     "blocks:ada:harvest": "node scripts/call-blocks-agent.mjs ada_harvest --partId topic",
     "blocks:artifact:dump": "node blocks/verify-full-artifact.mjs",
     "blocks:demo:call": "node scripts/call-blocks-agent.mjs star_map_demo",
-    "blocks:watch:all": "node scripts/supervise-all-agents.js"
+    "blocks:watch:all": "node scripts/supervise-all-agents.js",
+    "blocks:restart": "node scripts/restart-agents.js"
   },
   "dependencies": {
     "file-saver": "^2.0.5",
