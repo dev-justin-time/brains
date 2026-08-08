@@ -134,7 +134,7 @@ function processInfo(pid) {
   const image = line.split(/\s+/)[0]
   const command = line.slice(image.length).trim()
   const isBlocks = /(^|[\\/])(node|blocks)(\\.exe)?$/i.test(image)
-  return { image, command, allowed: isBlocks && (/blocks(\\.exe)?$/i.test(image) || projectCommand(command)), identityVerified: true }
+  return { image, command, allowed: isBlocks && (/blocks(\.exe)?$/i.test(image) || projectCommand(command)), identityVerified: true }
 }
 
 function pidAlive(pid) {
